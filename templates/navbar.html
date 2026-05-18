@@ -1,0 +1,13 @@
+<nav class="navbar">
+    <ul>
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+      <li><a href="{{ url_for('dashboard') }}" class="{% if request.path == '/' %}active{% endif %}">Dashboard</a></li>
+      <li><a href="{{ url_for('personnels_actifs') }}" class="{% if '/personnel/actifs' in request.path %}active{% endif %}">Personnels actifs</a></li>
+      <li><a href="{{ url_for('personnels_inactifs') }}" class="{% if '/personnel/inactifs' in request.path %}active{% endif %}">Personnels inactifs</a></li>
+      <li><a href="{{ url_for('statistiques') }}" class="{% if '/personnel/statistiques' in request.path %}active{% endif %}">Statistiques</a></li>
+      <li><a href="{{ url_for('repartition') }}" class="{% if '/personnel/repartition' in request.path %}active{% endif %}">Répartition</a></li>
+      <li><a href="{{ url_for('mouvements') }}" class="{% if '/personnel/mouvements' in request.path %}active{% endif %}">Mouvements</a></li>
+      <li><a href="{{ url_for('ajouter_agent') }}" class="{% if '/personnel/ajouter' in request.path %}active{% endif %}">Ajouter agent</a></li>
+    </ul>
+  </nav>
+  

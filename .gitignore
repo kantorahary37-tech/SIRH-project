@@ -1,0 +1,28 @@
+# Environnement virtuel
+venv/
+*.env
+.env.*
+
+# Fichiers compilés
+__pycache__/
+*.py[cod]
+
+# Logs
+*.log
+
+# Configurations locales
+.vscode/
+.idea/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Dépendances spécifiques à l'OS
+*.bak
+*.swp
+*.swo
+
+# Clés ou fichiers sensibles
+*.pem
+*.key

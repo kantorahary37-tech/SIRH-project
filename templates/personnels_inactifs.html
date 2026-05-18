@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>personnels_inactifs - SIRH</title>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  
+
+  <style>
+    :root {
+      --green-main: #2F5D50;
+      --green-soft: #3E7C6D;
+      --bg: #f4f7f6;
+      --card: #ffffff;
+      --text: #1F2D2A;
+      --muted: #7a8a86;
+      --radius: 12px;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", sans-serif;
+    }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+    }
+    
+    /* ===== HEADER ===== */
+    header {
+      background: linear-gradient(135deg, var(--green-main), var(--green-soft));
+      padding: 15px 30px 25px;
+      color: white;
+    }
+    
+    /* top */
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    /* logo */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .brand img {
+      height: 40px;
+    }
+    
+    .brand span {
+      font-weight: 600;
+      font-size: 18px;
+    }
+    
+    /* search */
+    .search {
+      position: relative;
+    }
+    
+    .search input {
+      padding: 8px 14px 8px 34px;
+      border-radius: 20px;
+      border: none;
+      outline: none;
+      width: 240px;
+      background: rgba(255,255,255,0.15);
+      color: white;
+    }
+    
+    .search input::placeholder {
+      color: rgba(255,255,255,0.7);
+    }
+    
+    .search i {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+    }
+    
+    /* user */
+    .user {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .user i {
+      cursor: pointer;
+    }
+    
+    .avatar {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: #fff;
+    }
+    
+    /* WRAPPER (prend toute la largeur) */
+    .nav-wrapper {
+      width: 100%;
+      padding: 0 20px; /* petit espace sur les côtés */
+      margin-top: 25px;
+    }
+    
+    /* CONTAINER GLASS LARGE */
+    .nav-icons {
+      width: 100%;
+      max-width: 900px; /* limite pour pas trop étirer */
+      margin: auto;
+    
+      display: flex;
+      justify-content: space-around; /* espace bien réparti */
+      align-items: center;
+    
+      padding: 14px 30px;
+      border-radius: 22px;
+    
+      /* effet glass moderne */
+      background: rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(14px);
+    
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    
+      /* profondeur ++ */
+      box-shadow: 
+        0 15px 40px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    
+    /* ICONES */
+    .nav-icons a {
+      color: rgba(255,255,255,0.75);
+      font-size: 20px;
+      transition: all 0.25s ease;
+    }
+    
+    /* HOVER */
+    .nav-icons a:hover {
+      color: white;
+      transform: translateY(-3px) scale(1.1);
+    }
+    
+    /* ACTIVE */
+    .nav-icons .active {
+      color: white;
+      transform: scale(1.15);
+    }
+
+/* ===== MAIN CONTENT ===== */
+main {
+  padding: 25px 30px 40px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Page Title */
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--green-main);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-title i {
+  color: var(--green-soft);
+}
+
+/* ===== ALERT / KPI ===== */
+.alert-custom {
+  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  border: none;
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin-bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.alert-custom strong {
+  font-size: 18px;
+  color: var(--green-main);
+}
+
+/* ===== IMPORT FORM ===== */
+.import-section {
+  background: white;
+  border-radius: 14px;
+  padding: 20px 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+}
+
+.import-section h3 {
+  font-size: 15px;
+  color: var(--green-main);
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.import-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.import-form input[type="file"] {
+  flex: 1;
+  padding: 10px 15px;
+  border: 2px dashed #c8e6c9;
+  border-radius: 10px;
+  background: #f9fbf9;
+  font-size: 13px;
+}
+
+.import-form input[type="file"]:hover {
+  border-color: var(--green-main);
+  background: #f0f7f4;
+}
+
+.btn-import {
+  background: linear-gradient(135deg, var(--green-main), var(--green-soft));
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-import:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(47, 93, 80, 0.3);
+}
+
+/* ===== TABLE CARD ===== */
+.table-card {
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+.table-card table {
+  margin-bottom: 0;
+  width: 100%;
+}
+
+/* Status Badge */
+.badge-status {
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-status.actif {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.badge-status.inactif {
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* Action Buttons */
+.btn-action {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-edit {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.btn-edit:hover {
+  background: #ffe0b2;
+  transform: scale(1.05);
+}
+
+.btn-view {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.btn-view:hover {
+  background: #bbdefb;
+  transform: scale(1.05);
+}
+
+/* Search Table Input */
+.search-table {
+  width: 100%;
+  padding: 12px 18px;
+  border: 2px solid #c8e6c9;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #f9fbf9;
+  transition: all 0.3s ease;
+}
+
+.search-table:focus {
+  outline: none;
+  border-color: var(--green-main);
+  box-shadow: 0 0 0 3px rgba(47, 93, 80, 0.1);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1200px) {
+  main {
+    padding: 20px;
+  }
+  
+  .table-card {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .import-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .btn-import {
+    justify-content: center;
+  }
+}
+      </style>
+    </head>
+    <body>
+    
+    <!-- HERO -->
+    <header>
+      <div class="topbar">
+    
+        <div class="brand">
+          <img src="{{ url_for('static', filename='img/logo.png') }}">
+          <span>SIRH</span>
+        </div>
+    
+        <form action="{{ url_for('recherche') }}" method="get" class="search">
+          <i class="fa fa-search"></i>
+          <input type="text" name="q" placeholder="Rechercher ..." required>
+        </form>
+    
+        <div class="user-box">
+          {% include 'panel_compte.html' %}
+        </div>
+    
+    
+      </div>
+    
+      <div class="nav-wrapper">
+        <div class="nav-icons">
+          <a href="/dashboard" ><i class="fa-solid fa-gauge"></i></a>
+          <a href="/personnels_actifs"><i class="fa-solid fa-users"></i></a>
+          <a href="/personnels_inactifs"  class="active"><i class="fa-solid fa-user-slash"></i></a>
+          <a href="/sanctions"><i class="fa-solid fa-gavel"></i></a>
+          <a href="/statistiques"><i class="fa-solid fa-chart-line"></i></a>
+          <a href="/repartition"><i class="fa-solid fa-diagram-project"></i></a>
+          <a href="/mouvements"><i class="fa-solid fa-arrows-rotate"></i></a>
+          <a href="/ajouter_agent"><i class="fa-solid fa-user-plus"></i></a>
+        </div>
+      </div>
+    </header>
+    
+<!-- CONTENU PRINCIPAL -->
+  <main>
+    {% block content %}
+    <div class="container">
+        <h2 class="page-title">
+          <i class="fa-solid fa-user-slash"></i>
+          Liste des Agents Inactifs
+        </h2>
+      
+        <div class="alert-custom">
+          <i class="fa-solid fa-user-clock"></i>
+          Total agents inactifs : <strong>{{ total_inactifs }}</strong>
+      </div>
+      <div class="table-scroll"> 
+      
+          <table class="table table-hover">
+              <colgroup>
+                  <col style="width:120px">
+                  <col style="width:55px">
+                  <col style="width:140px">
+                  <col style="width:85px">
+                  <col style="width:50px">
+                  <col style="width:85px">
+                  <col style="width:70px">
+                  <col style="width:120px">
+                  <col style="width:85px">
+                  <col style="width:120px">
+                  <col style="width:110px">
+                  <col style="width:110px">
+                  <col style="width:85px">
+                  <col style="width:110px">
+                  <col style="width:85px">
+                  <col style="width:120px">
+                  <col style="width:105px">
+              </colgroup>
+              <thead class="text-center align-middle">
+                  <tr>
+                      <th>Poste Comptable</th>
+                      <th>IM</th>
+                      <th>Agents</th>
+                      <th>Date de Naissance</th>
+                      <th>Genre</th>
+                      <th>Corps</th>
+                      <th>Statut</th>
+                      <th>Poste</th>
+                      <th>Date 1ère Prise Service</th>
+                      <th>Historique formation</th>
+                      <th>Epoux/Epouse</th>
+                      <th>Promotion corps</th>
+                      <th>Téléphone</th>
+                      <th>Motif inactivité</th>
+                      <th>Date inactivité</th>
+                      <th>Commentaire inactivité</th>
+                      <th>Actions</th>
+                  </tr>
+              </thead>
+   
+              <tbody>
+              {% for agent in agents %}
+                  <tr>
+                      <td>{{ agent.poste_comptable }}</td>
+                      <td>{{ agent.matricule }}</td>
+                      <td>{{ agent.agent }}</td>
+                      <td>{{ agent.date_naissance or '' }}</td>
+                      <td>{{ agent.genre }}</td>
+                      <td>{{ agent.corps }}</td>
+                      
+                      <td>
+                        <form method="POST" action="/update_statut/{{ agent.id }}">
+                          <select name="statut" onchange="this.form.submit()">
+                              <option value="Inactif" {% if agent.statut == 'Inactif' %}selected{% endif %}>Inactif</option>
+                              <option value="Actif" {% if agent.statut == 'Actif' %}selected{% endif %}>Actif</option>
+                          </select>
+                        </form>
+                      </td>
+                      
+                      <td>{{ agent.poste_type }}</td>
+                      <td>{{ agent.date_premiere_prise_service or '' }}</td>
+                      <td>{{ agent.historique_formations }}</td>
+                      <td>{{ agent.epoux_epouse_nom_poste }}</td>
+                      <td>{{ agent.promotion_corps }}</td>
+                      <td>{{ agent.telephone }}</td>
+                      <td>{{ agent.motif_inactivite}}</td>
+                      <td>{{ agent.date_inactivite }}</td>
+                      <td>{{ agent.commentaire_inactivite }}</td>
+                      
+                      <td>
+                        <button onclick="ouvrirPopup({{ agent.id }})" class="btn-action btn-edit">
+                            <i class="fa-solid fa-pen"></i> Modifier
+                        </button>
+
+                        <a href="{{ url_for('fiche_agent', id=agent.id) }}" class="btn-action btn-view">
+                            <i class="fa-solid fa-eye"></i> Voir
+                        </a>
+                    </td>s
+                         
+                  </tr>
+              {% else %}
+                  <tr>
+                      <td colspan="17" class="text-center text-muted">Aucun agent inactif trouvé.</td>
+                  </tr>
+              {% endfor %}
+              </tbody>
+          </table>
+      </div>
+    </div>
+    {% endblock %}
+
+    
+    </main>
+
+
+  <!-- POPUP MODIFIER UN AGENT INACTIF -->
+<div id="popupModifier" class="popup-overlay">
+  <div class="popup-content">
+    <h3 style="margin-top:0;">Modifier les informations de l’agent</h3>
+
+    <div class="popup-body">
+      <form id="formModifier" method="POST">
+        <div class="popup-row">
+          <div class="popup-col">
+            <label>Matricule</label>
+            <input type="text" id="matricule" name="matricule" required>
+
+            <label>Nom & Prénoms</label>
+            <input type="text" id="agent" name="agent" required>
+
+            <label>Genre</label>
+            <select id="mod_genre" name="genre" required>
+              <option value="Homme ">Homme</option>
+              <option value="Femme">Femme</option>
+            </select>
+
+            <label>Date de naissance</label>
+            <input type="date" id="date_naissance" name="date_naissance">
+          </div>
+
+          <div class="popup-col">
+            <label>Téléphone</label>
+            <input type="text" id="telephone" name="telephone">
+
+
+            <label>Corps</label>
+                <select name="corps" id="corps" required>
+                  <option value="">-- Sélectionner le corps --</option>
+                  <option value="Inspecteur de trésor">Inspecteur de Trésor</option>
+                  <option value="Percepteur Principal des Finances">Percepteur Principal des Finances</option>
+                  <option value="Percepteur des Finances">Percepteur des Finances</option>
+                  <option value="Controleur de trésor">Controleur de trésor</option>
+                  <option value="Comptable de trésor">Comptable de trésor</option>
+                  <option value="Planificateur Principal">Planificateur Principal</option>
+                  <option value="Magistrat"> Magistrat</option>
+                  <option value="Concepteur ">Concepteur</option>
+                  <option value="Planificateur">Planificateur</option>
+                  <option value="Fonctionnaire de la catégorie VII">Fonctionnaire de la catégorie VII</option>
+                  <option value="Attaché de planification">Attaché de planification</option>
+                  <option value="Réalisateur">Réalisateur</option>
+                  <option value="Réalisateur adjoint">Réalisateur adjoint</option>
+                  <option value="Technicien supérieur"> Technicien supérieur</option>
+                  <option value="Encadreur">Encadreur</option>
+                  <option value="Opérateur">Opérateur</option>
+                  <option value="Sous Opérateur">Sous Opérateur</option>
+                  <option value="ELD">ELD</option>
+                  <option value="ECD">ECD</option>
+                  <option value="Autre">Autre</option>
+                  <option value="Agent de police">Agent de police</option>
+                  <option value="Agent détaché">Agent détaché</option>
+                </select>
+
+            <label>Poste</label>
+            <select name="poste_type" id="poste_type" required>
+            <option value="">-- Sélectionner le poste --</option>
+                  <option value="Agent de surface">Agent de surface</option>
+                  <option value=" Archiviste">Archiviste</option>
+                  <option value="Auditeur">Auditeur </option>
+                  <option value="Caissier">Caissier</option>
+                  <option value="Chaffeur ">Chauffeur</option>
+                  <option value="Chef de Cellule d'inspection ">Chef de Cellule d'inspection</option>
+                  <option value="Chef de division caisse/Tresorerie"> Chef de division caisse/Tresorerie</option>
+                  <option value="Chef de division comptabilité et compte de gestion ">Chef de division comptabilité et compte de gestion</option>
+                  <option value="Chef de division dépense">Chef de division dépense</option>
+                  <option value="Contrôleur ">Contrôleur</option>
+                  <option value="Coursier/Planton ">Coursier/Planton</option>
+                  <option value="Dépositaire comptable">Dépositaire comptable</option>
+                  <option value=" Guichetier">Guichetier</option>
+                  <option value="Ordonnateur secondaire"> Ordonnateur secondaire</option>
+                  <option value="Ordonnateur Suppléant">Ordonnateur Suppléant</option>
+                  <option value="Responsable Contrôle Interne">Responsable Contrôle Interne</option>
+                  <option value=" Responsable de Communication">Responsable de Communication</option>
+                  <option value="Responsable de délivrance">Responsable de délivrance</option>
+                  <option value="Responsable de Formation Interne">Responsable de Formation Interne</option>
+                  <option value="Responsable de pension">Responsable de pension</option>
+                  <option value="Responsable de Suivi de la situation des fonds libres des CTD et des EPN">Responsable de Suivi de la situation des fonds libres des CTD et des EPN</option>
+                  <option value="Responsable de Mission">Responsable de Mission</option>
+                  <option value="Responsable des marchés">Responsable des marchés</option>
+                  <option value="Responsable Dépenses">Responsable Dépenses</option>
+                  <option value="Responsable financier et budgétaire">Responsable financier et budgétaire</option>
+                  <option value="Responsable FJPA (Dépenses avant ordonnancement)">Responsable FJPA (Dépenses avant ordonnancement)</option>
+                  <option value="Responsable Guichet unique">Responsable Guichet unique</option>
+                  <option value="Responsable Informatique"> Responsable Informatique</option>
+                  <option value="Responsable personnel">Responsable personnel</option>
+                  <option value="Responsable régie d'avance">Responsable régie d'avance</option>
+                  <option value="Responsable Recettes">Responsable Recettes</option>
+                  <option value="Responsable situation de crédit et validation mandat">Responsable situation de crédit et validation mandat</option>
+                  <option value="Responsable Recettes">Responsable Recettes</option>
+                  <option value="Responsable visa">Responsable visa</option>
+                  <option value="Responsable d'approvisionnement de fonds Secrétaire">Responsable d'approvisionnement de fonds Secrétaire</option>
+                  <option value="Trésorier Général">Trésorier Général</option>
+                </select>
+
+
+                <label>Poste Comptable</label>
+                <select name="poste_comptable" id="poste_comptable" required>
+                  <option value="">Poste Comptable</option>
+                      <option value="AC RIYAD">AC RIYAD</option>
+                      <option value=" AC ADDIS ABEBA">AC ADDIS ABEBA</option>
+                      <option value="AC ALGER">AC ALGER </option>
+                      <option value="AC BERLIN">AC BERLIN</option>
+                      <option value="AC BRUXELLES ">AC BRUXELLES</option>
+                      <option value="AC DAKAR ">AC DAKAR </option>
+                      <option value="AC GENEVE">AC GENEVE</option>
+                      <option value="AC PRETORIA ">AC PRETORIA</option>
+                      <option value="AC LA REUNION">AC LA REUNION</option>
+                      <option value="AC LONDRES ">AC LONDRES</option>
+                      <option value="AC MARSEILLE ">AC MARSEILLE </option>                   
+                      <option value="AC MAURICE">AC MAURICE</option>
+                      <option value="AC MOSCOU"> AC MOSCOU</option>
+                      <option value="AC NEW YORK">AC NEW YORK</option>
+                      <option value="AC NEW DEHLI">AC NEW DEHLI</option>
+                      <option value=" AC OTTAWA">AC OTTAWA</option>
+                      <option value="AC PARIS">AC PARIS</option>
+                      <option value="AC CHINE">AC CHINE</option>
+                      <option value="AC ROME">AC ROME</option>
+                      <option value="AC TOKYO">AC TOKYO</option>
+                      <option value="AC UNESCO PARIS">AC UNESCO PARIS</option>
+                      <option value="AC WASHINGTON">AC WASHINGTON</option>
+                      <option value="ACAFCV">ACAFCV</option>
+                      <option value="ACCTDP">ACCTDP</option>
+                      <option value="CIRSAP">CIRSAP</option>
+                      <option value="CNCR">CNCR</option>
+                      <option value="DCP"> DCP</option>
+                      <option value="PGA">PGA</option>
+                      <option value="PP AMBALAVAO">PP AMBALAVAO</option>
+                      <option value="PP AMBANJA">PP AMBANJA</option>
+                      <option value="PP AMBATOFINANDRAHANA">PP AMBATOFINANDRAHANA</option>
+                      <option value="PP AMBATOLAMPY">PP AMBATOLAMPY</option>
+                      <option value="PP AMBATOMAINTY">PP AMBATOMAINTY</option>
+                      <option value="PP AMBATOMAINTY 404">PP AMBATOMAINTY 404</option>
+                      <option value="PP AMBILOBE">PP AMBILOBE</option>
+                      <option value="PP AMBOASARY SUD"> PP AMBOASARY SUD</option>
+                      <option value="PP AMBOHIDRATRIMO"> PP AMBOHIDRATRIMO</option>
+                      <option value="PP AMBOHIMAHASOA">PP AMBOHIMAHASOA</option>
+                      <option value="PP AMBOHIMANARINA">PP AMBOHIMANARINA</option>
+                      <option value="PP AMPANIHY OUEST">PP AMPANIHY OUEST</option>
+                      <option value="PP AMPARAFARAVOLA">PP AMPARAFARAVOLA</option>
+                      <option value="PP ANALALAVA">PP ANALALAVA</option>
+                      <option value="PP ANDAPA">PP ANDAPA</option>
+                      <option value="PP ANDILAMENA">PP ANDILAMENA</option>
+                      <option value="PP ANDRAMASINA">PP ANDRAMASINA</option>
+                      <option value="PP ANJOZOROBE"> PP ANJOZOROBE</option>
+                      <option value="PP ANKADIFOTSY">PP ANKADIFOTSY</option>
+                      <option value="PP ANKAZOABO SUD">PP ANKAZOABO SUD</option>
+                      <option value="PP ANKAZOBE">PP ANKAZOBE</option>
+                      <option value="PP ANOSIBE AN'ALA">PP ANOSIBE AN'ALA</option>
+                      <option value="PP ANOSIPATRANA">PP ANOSIPATRANA</option>
+                      <option value="PP ANTANAMBAO MANAMPONTSY">PP ANTANAMBAO MANAMPONTSY</option>
+                      <option value="PP ANTANIFOTSY">PP ANTANIFOTSY</option>
+                      <option value="PP ANTSALOVA">PP ANTSALOVA</option>
+                      <option value="PP ARIVONIMAMO">PP ARIVONIMAMO</option>
+                      <option value="PP ATSIMONDRANO">PP ATSIMONDRANO</option>
+                      <option value="PP BEALANANA">PP BEALANANA</option>
+                      <option value="PP BEFANDRIANA NORD">PP BEFANDRIANA NORD</option>
+                      <option value="PP BEFOTAKA SUD">PP BEFOTAKA SUD</option>
+                      <option value="PP BEKILY">PP BEKILY</option>
+                      <option value="PP BELO SUR TSIRIBIHINA">PP BELO SUR TSIRIBIHINA</option>
+                      <option value="PP BELOHA">PP BELOHA</option>
+                      <option value="PP BENENITRA">PP BENENITRA</option>
+                      <option value="PP BEROROHA">PP BEROROHA</option>
+                      <option value="PP BESALAMPY"> PP BESALAMPY</option>
+                      <option value="PP BESARETY">PP BESARETY</option>
+                      <option value="PP BETAFO">PP BETAFO</option>
+                      <option value="PP BETIOKA SUD ">PP BETIOKA SUD</option>
+                      <option value="PP BETROKA">PP BETROKA</option>
+                      <option value="PP BRICKAVILLE">PP BRICKAVILLE</option>
+                      <option value="PP FANDRIANA">PP FANDRIANA</option>
+                      <option value="PP FARATSIHO">PP FARATSIHO</option>
+                      <option value="PP FARAVOHITRA">PP FARAVOHITRA</option>
+                      <option value="PP FENOARIVO BE ">PP FENOARIVO BE</option>
+                      <option value="PP IAKORA">PP IAKORA</option>
+                      <option value="PP IFANADIANA">PP IFANADIANA</option>
+                      <option value="PP IKALAMAVONY">PP IKALAMAVONY</option>
+                      <option value="PP IKONGO">PP IKONGO</option>
+                      <option value="PP ISOTRY">PP ISOTRY</option>
+                      <option value="PP IVOHIBE">PP IVOHIBE</option>
+                      <option value="PP KANDREHO">PP KANDREHO</option>
+                      <option value="PP MAHABO">PP MAHABO</option>
+                      <option value="PP MAHAMASINA"> PP MAHAMASINA</option>
+                      <option value="PP MAHANORO">PP MAHANORO</option>
+                      <option value="PP MAHAZOARIVO">PP MAHAZOARIVO</option>
+                      <option value="PP MAMPIKONY ">PP MAMPIKONY</option>
+                      <option value="PP MANANARA NORD ">PP MANANARA NORD</option>
+                      <option value="PP MANANDRIANA">PP MANANDRIANA</option>
+                      <option value="PP MANANTENINA">PP MANANTENINA</option>
+                      <option value="PP MANDRITSARA">PP MANDRITSARA</option>
+                      <option value="PP MANJA">PP MANJA</option>
+                      <option value="PP MANJAKANDRIANA">PP MANJAKANDRIANA</option>
+                      <option value="PP MAROANTSETRA">PP MAROANTSETRA</option>
+                      <option value="PP MAROLAMBO">PP MAROLAMBO</option>
+                      <option value="PP MAROVOAY">PP MAROVOAY</option>
+                      <option value="PP MIANDRIVAZO">PP MIANDRIVAZO</option>
+                      <option value="PP MIDONGY SUD">PP MIDONGY SUD</option>
+                      <option value="PP MITSINJO">PP MITSINJO</option>
+                      <option value="PP MORAFENOBE"> PP MORAFENOBE</option>
+                      <option value="PP MOROMBE">PP MOROMBE</option>
+                      <option value="PP NOSY VARIKA">PP NOSY VARIKA</option>
+                      <option value="PP PORT-BERGE ">PP PORT-BERGE</option>
+                      <option value="PP SAINTE MARIE ">PP SAINTE MARIE</option>
+                      <option value="PP SAKARAHA">PP SAKARAHA</option>
+                      <option value="PP SOALALA">PP SOALALA</option>
+                      <option value="PP SOANIERANA IVONGO">PP SOANIERANA IVONGO</option>
+                      <option value="PP SOAVINANDRIANA">PP SOAVINANDRIANA</option>
+                      <option value="PP TSARATANANA">PP TSARATANANA</option>
+                      <option value="PP TSIHOMBE">PP TSIHOMBE</option>
+                      <option value="PP TSIVORY">PP TSIVORY</option>
+                      <option value="PP VANGAINDRANO">PP VANGAINDRANO</option>
+                      <option value="PP VATOMANDRY">PP VATOMANDRY</option>
+                      <option value="PP VAVATENINA">PP VAVATENINA</option>
+                      <option value="PP VOHEMAR">PP VOHEMAR</option>
+                      <option value="PP VOHIPENO"> PP VOHIPENO</option>
+                      <option value="PP VONDROZO">PP VONDROZO</option>
+                      <option value="RGA">RGA</option>
+                      <option value="SGR  ">SGR</option>
+                      <option value="SOI">SOI</option>
+                      <option value="SRCF">SRCF</option>
+                      <option value="SSEPC">SSEPC</option>
+                      <option value="TG AMBATONDRAZAKA">TG AMBATONDRAZAKA</option>
+                      <option value="TG AMBOSITRA">TG AMBOSITRA</option>
+                      <option value="TG AMBOVOMBE ANDROY">TG AMBOVOMBE ANDROY</option>
+                      <option value="TG ANTSIRABE">TG ANTSIRABE</option>
+                      <option value="TG ANTSIRANANA">TG ANTSIRANANA</option>
+                      <option value="TG ANTSOHIHY">TG ANTSOHIHY</option>
+                      <option value="TG FARAFANGANA ">TG FARAFANGANA</option>
+                      <option value="TG FENERIVE EST">TG FENERIVE EST</option>
+                      <option value="TG FIANARANTSOA">TG FIANARANTSOA</option>
+                      <option value="TG IHOSY">TG IHOSY</option>
+                      <option value="TG MAEVATANANA">TG MAEVATANANA</option>
+                      <option value="TG MAHAJANGA">TG MAHAJANGA</option>
+                      <option value="TG MAINTIRANO">TG MAINTIRANO</option>
+                      <option value="TG MANAKARA">TG MANAKARA</option>
+                      <option value="TG MANANJARY ">TG MANANJARY</option>
+                      <option value="TG MIARINARIVO">TG MIARINARIVO</option>
+                      <option value="TG MORONDAVA">TG MORONDAVA</option>
+                      <option value="TG SAMBAVA">TG SAMBAVA</option>
+                      <option value="TG TOAMASINA">TG TOAMASINA</option>
+                      <option value="TG TOLAGNARO">TG TOLAGNARO</option>
+                      <option value="TG TOLIARY">TG TOLIARY</option>
+                      <option value="TG TSIROANOMANDIDY">TG TSIROANOMANDIDY</option>
+                      <option value="TMEN ">TMEN </option>
+                      <option value="TP 67HA">TP 67HA</option>
+                      <option value="TP AMBOHIDAHY">TP AMBOHIDAHY</option>
+                      <option value="TP ANALAMAHITSY ">TP ANALAMAHITSY</option>
+                      <option value="TP ANOSY">TP ANOSY</option>
+                      <option value="TP ANTALAHA">TP ANTALAHA</option>
+                      <option value="TP NOSY BE">TP NOSY BE</option>
+                      <option value="TP TSIMBAZAZA">TP TSIMBAZAZA</option>
+                      <option value="TPA">TPA</option>
+                      <option value="TPIC BONGOTSARA ">TPIC BONGOTSARA</option>
+                      <option value="TPIC IVATO">TPIC IVATO</option>
+                      <option value="TPIC MORAMANGA">TPIC MORAMANGA</option>
+                      <option value="TPPFE">TPPFE</option>
+                    </select>
+        
+
+            <label>Date 1ère prise service</label>
+            <input type="date" id="date_service" name="date_premiere_prise_service">
+          </div>
+        </div>
+
+        <label>Promotion corps</label>
+        <input type="text" id="promotion" name="promotion_corps">
+
+        
+
+        <label>Nom époux / épouse</label>
+        <input type="text" id="epoux" name="epoux_epouse_nom_poste">
+
+        <label>Historique des formations</label>
+        <textarea id="historique" name="historique_formations"></textarea>
+
+        <label>Motif_inactivité</label>
+            <select id="motif_inactivite" name="motif_inactivite" required>
+              <option value="Retraite">Retraite</option>
+              <option value="Décès">Décès</option>
+              <option value="Radiation">Radiation</option>
+              <option value="Démission">Démission</option>
+              <option value="Autre">Autre</option>
+            </select>
+
+        <label>Date inactivité</label>
+        <input type="date" id="date_inactivite" name="date_inactivite">
+
+        <label>Commentaire</label>
+        <input type="text" id="commentaire_inactivite" name="commentaire_inactivite">
+      </form>
+    </div>
+
+    <div class="popup-actions">
+      <button type="submit" form="formModifier" class="btn-save">Enregistrer</button>
+      <button type="button" class="btn-cancel" onclick="fermerPopupModifier()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+
+<style>
+  /* ===== MAIN CONTENT ===== */
+main {
+  padding: 25px 30px 40px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Page Title */
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--green-main);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-title i {
+  color: var(--green-soft);
+}
+
+/* ===== ALERT / KPI ===== */
+.alert-custom {
+  background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+  border: none;
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin-bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.alert-custom strong {
+  font-size: 18px;
+  color: var(--green-main);
+}
+
+/* ===== IMPORT FORM ===== */
+.import-section {
+  background: white;
+  border-radius: 14px;
+  padding: 20px 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+}
+
+.import-section h3 {
+  font-size: 15px;
+  color: var(--green-main);
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.import-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.import-form input[type="file"] {
+  flex: 1;
+  padding: 10px 15px;
+  border: 2px dashed #c8e6c9;
+  border-radius: 10px;
+  background: #f9fbf9;
+  font-size: 13px;
+}
+
+.import-form input[type="file"]:hover {
+  border-color: var(--green-main);
+  background: #f0f7f4;
+}
+
+.btn-import {
+  background: linear-gradient(135deg, var(--green-main), var(--green-soft));
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-import:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(47, 93, 80, 0.3);
+}
+
+/* ================= TABLE ================= */
+.table-scroll {
+  width: 100%;
+  max-height: calc(100vh - 220px);
+  overflow: auto;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+}
+
+.table-scroll table {
+  min-width: 1755px;
+  width: 100%;
+  margin-bottom: 0;
+  table-layout: fixed;
+}
+
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(135deg, #2F5D50, #3E7C6D);
+  color: white;
+}
+
+/* CELLULES */
+.table-scroll tbody td {
+  padding: 8px 10px;
+  color: #334155;
+  word-wrap: break-word;
+}
+
+.table-scroll .btn-action {
+  white-space: nowrap;
+}
+
+/* HOVER */
+.table-hover tbody tr:hover td {
+  background: rgba(62,124,109,0.08);
+}
+
+@media (max-width: 768px) {
+  .import-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .btn-import {
+    justify-content: center;
+  }
+}
+
+/* ===== POPUP MODIFIER ===== */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.popup-overlay.afficher {
+  display: flex;
+}
+
+.popup-content {
+  background: #ffffff;
+  width: 800px;
+  max-width: 95%;
+  max-height: 90vh;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+}
+
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.popup-content {
+  animation: fadeSlide 0.25s ease;
+}
+
+.popup-overlay h3 {
+  margin: 0;
+  padding: 14px 18px;
+  font-size: 15px;
+  background: linear-gradient(135deg, #2F5D50, #3E7C6D);
+  color: white;
+  border-radius: 14px 14px 0 0;
+}
+
+.popup-body {
+  padding: 18px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.popup-body::-webkit-scrollbar {
+  width: 6px;
+}
+.popup-body::-webkit-scrollbar-thumb {
+  background: rgba(62,124,109,0.4);
+  border-radius: 10px;
+}
+
+.popup-row {
+  display: flex;
+  gap: 20px;
+}
+
+.popup-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 700px) {
+  .popup-row {
+    flex-direction: column;
+  }
+}
+
+.popup-body label {
+  font-size: 12px;
+  color: #6c7a76;
+  margin-top: 10px;
+}
+
+.popup-body input,
+.popup-body select,
+.popup-body textarea {
+  margin-top: 4px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid #dfe7e5;
+  background: #f8faf9;
+  font-size: 13px;
+  transition: 0.2s;
+  width: 100%;
+}
+
+.popup-body input:focus,
+.popup-body select:focus,
+.popup-body textarea:focus {
+  outline: none;
+  border-color: #3E7C6D;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(62,124,109,0.15);
+}
+
+.popup-body textarea {
+  resize: vertical;
+}
+
+.popup-actions {
+  padding: 12px 18px;
+  border-top: 1px solid #eef2f2;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #fafcfc;
+  border-radius: 0 0 14px 14px;
+}
+
+.btn-save {
+  background: linear-gradient(135deg, #2F5D50, #3E7C6D);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-save:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(47,93,80,0.3);
+}
+
+.btn-cancel {
+  background: #eef2f1;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-cancel:hover {
+  background: #e2e8e6;
+}
+      </style>
+
+  <script>
+  
+  let agentIdActuel = null;
+  
+  // Ouvrir le popup + précharger les infos
+  function ouvrirPopup(id) {
+      agentIdActuel = id;
+  
+      fetch(`/api/agent/${id}`)
+          .then(r => r.json())
+          .then(data => {
+              if (data.error) {
+                  alert("Erreur : agent introuvable");
+                  return;
+              }
+  
+              // Remplissage du formulaire
+              document.getElementById("matricule").value = data.matricule || "";
+              document.getElementById("agent").value = data.agent || "";
+              document.getElementById("mod_genre").value = data.genre || "";
+              document.getElementById("date_naissance").value = data.date_naissance || "";
+              document.getElementById("telephone").value = data.telephone || "";
+              document.getElementById("corps").value = data.corps || "";
+              document.getElementById("poste_type").value = data.poste_type || "";
+              document.getElementById("poste_comptable").value = data.poste_comptable || "";
+              document.getElementById("date_service").value = data.date_premiere_prise_service || "";
+              document.getElementById("promotion").value = data.promotion_corps || "";
+              
+              document.getElementById("epoux").value = data.epoux_epouse_nom_poste || "";
+              document.getElementById("historique").value = data.historique_formations || "";
+              // ✔✔ CORRECTIONS ICI
+              document.getElementById("motif_inactivite").value = data.motif_inactivite || "";
+              document.getElementById("date_inactivite").value = data.date_inactivite || "";
+              document.getElementById("commentaire_inactivite").value = data.commentaire_inactivite || "";
+              
+              document.getElementById("popupModifier").classList.add("afficher");
+          })
+          .catch(err => {
+              console.error(err);
+              alert("Erreur de chargement (voir console)");
+          });
+  }
+  
+  
+  // Fermer popup
+  function fermerPopupModifier() {
+      document.getElementById("popupModifier").classList.remove("afficher");
+  }
+  
+  
+  // Enregistrer les modifications
+  document.getElementById("formModifier").addEventListener("submit", function(e) {
+      e.preventDefault();
+  
+      const data = {
+          matricule: document.getElementById("matricule").value,
+          agent: document.getElementById("agent").value,
+          genre: document.getElementById("mod_genre").value,
+          date_naissance: document.getElementById("date_naissance").value,
+          telephone: document.getElementById("telephone").value,
+          corps: document.getElementById("corps").value,
+          poste_type: document.getElementById("poste_type").value,
+          poste_comptable: document.getElementById("poste_comptable").value,
+          date_premiere_prise_service: document.getElementById("date_service").value,
+          promotion_corps: document.getElementById("promotion").value,
+         
+          epoux_epouse_nom_poste: document.getElementById("epoux").value,
+          historique_formations: document.getElementById("historique").value,
+          motif_inactivite: document.getElementById("motif_inactivite").value,
+          date_inactivite: document.getElementById("date_inactivite"). value,
+          commentaire_inactivite: document.getElementById("commentaire_inactivite"). value
+      };
+  
+      fetch(`/api/agent/update/${agentIdActuel}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+      })
+      .then(response => response.json())    // <<< ESSENTIEL
+      .then(data => {
+          if (data.success) {
+        location.reload();
+        }
+      })
+      .catch(err => {
+          console.error(err);
+          alert("Erreur lors de l’enregistrement (voir console)");
+      });
+  });
+  </script>
+  
+  
+</body>
+</html>

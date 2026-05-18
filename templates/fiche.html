@@ -1,0 +1,278 @@
+{% extends "personnels_actifs.html" %}
+{% block content %}
+
+<style>
+:root {
+  --green-main: #2F5D50;
+  --green-soft: #3E7C6D;
+  --bg: #f4f7f6;
+  --card: #ffffff;
+  --text: #1F2D2A;
+  --muted: #7a8a86;
+  --radius: 12px;
+}
+
+body {
+  background: var(--bg);
+}
+
+/* ===== FICHE ===== */
+.fiche-container {
+  max-width: 900px;
+  margin: 30px auto;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--text);
+}
+
+/* HEADER */
+.fiche-header {
+  background: linear-gradient(135deg, var(--green-main), var(--green-soft));
+  color: white;
+  padding: 18px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fiche-header h4 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.fiche-header small {
+  opacity: 0.9;
+}
+
+/* STATUS */
+.badge-status {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  background: rgba(255,255,255,0.2);
+}
+
+/* SECTION */
+.section {
+  padding: 16px 22px;
+  border-bottom: 1px solid #eef2f2;
+}
+
+.section-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--green-main);
+  margin-bottom: 10px;
+  letter-spacing: .5px;
+}
+
+/* ITEM */
+.item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed #eef2f2;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.item span {
+  color: var(--muted);
+}
+
+.item strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* IMPORTANT */
+.highlight strong {
+  color: var(--green-main);
+}
+
+/* TIMELINE */
+.timeline {
+  border-left: 2px solid var(--green-soft);
+  padding-left: 15px;
+}
+
+.timeline-item {
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 5px;
+  width: 8px;
+  height: 8px;
+  background: var(--green-main);
+  border-radius: 50%;
+}
+
+.timeline-date {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.timeline-content {
+  font-size: 12px;
+  background: #f8fbfa;
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 4px;
+}
+
+/* CLOSE */
+.close-btn {
+  color: white;
+  text-decoration: none;
+  font-size: 18px;
+}
+
+.fiche-container {
+  background: linear-gradient(180deg, #ffffff, #f9fbfa);
+  border: 1px solid rgba(62,124,109,0.15);
+  box-shadow: 0 12px 35px rgba(0,0,0,0.08);
+  position: relative;
+}
+
+.fiche-container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(0,0,0,0.02) 1px, transparent 1px);
+  background-size: 18px 18px;
+  pointer-events: none;
+  opacity: 0.4;
+}
+.timeline {
+  border-left: 2px solid rgba(62,124,109,0.4);
+}
+
+.timeline-item::before {
+  background: var(--green-main);
+  box-shadow: 0 0 0 3px rgba(62,124,109,0.15);
+}
+.fiche-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  background: linear-gradient(135deg, var(--green-main), var(--green-soft));
+}
+.fiche-container {
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.badge-status {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(6px);
+}
+</style>
+
+
+<div class="fiche-container">
+
+  <!-- HEADER -->
+  <div class="fiche-header">
+    <div>
+      <h4>{{ agent.agent }}</h4>
+      <small>IM : {{ agent.matricule }}</small>
+    </div>
+
+    <span class="badge-status">
+      {{ agent.statut }}
+    </span>
+
+    <a href="{{ url_for('personnels_actifs') }}" class="close-btn">✕</a>
+  </div>
+
+  <!-- INFOS PERSONNELLES -->
+  <div class="section">
+    <div class="section-title">Informations personnelles</div>
+
+    <div class="item"><span>Genre</span><strong>{{ agent.genre }}</strong></div>
+    <div class="item"><span>Date de naissance</span><strong>{{ agent.date_naissance }}</strong></div>
+    <div class="item highlight"><span>Âge</span><strong>{{ agent.age or "—" }}</strong></div>
+    <div class="item"><span>Téléphone</span><strong>{{ agent.telephone or "—" }}</strong></div>
+  </div>
+
+  <!-- INFOS PRO -->
+  <div class="section">
+    <div class="section-title">Informations professionnelles</div>
+
+    <div class="item"><span>Corps</span><strong>{{ agent.corps }}</strong></div>
+    <div class="item"><span>Poste</span><strong>{{ agent.poste_type }}</strong></div>
+    <div class="item"><span>Poste comptable</span><strong>{{ agent.poste_comptable or "—" }}</strong></div>
+    <div class="item"><span>1ère prise de service</span><strong>{{ agent.date_premiere_prise_service }}</strong></div>
+    <div class="item highlight"><span>Ancienneté</span><strong>{{ agent.anciennete or "—" }}</strong></div>
+  </div>
+
+  <!-- AUTRES -->
+  <div class="section">
+    <div class="section-title">Autres informations</div>
+
+    <div class="item">
+      <span>Époux(se)</span>
+      <strong>{{ agent.epoux_epouse_nom_poste or "—" }}</strong>
+    </div>
+  </div>
+
+  <!-- INACTIF -->
+  {% if agent.statut != 'Actif' %}
+  <div class="section">
+    <div class="section-title" style="color:#a94442;">Agent inactif</div>
+
+    <div class="item"><span>Date inactivité</span><strong>{{ agent.date_inactivite or "—" }}</strong></div>
+    <div class="item"><span>Motif</span><strong>{{ agent.motif_inactivite or "—" }}</strong></div>
+    <div class="item"><span>Commentaire</span><strong>{{ agent.commentaire or "—" }}</strong></div>
+  </div>
+  {% endif %}
+
+  <!-- TIMELINE -->
+  <div class="section">
+    <div class="section-title">Historique</div>
+
+    {% if historique %}
+    <div class="timeline">
+
+      {% for event in historique %}
+      <div class="timeline-item">
+        <div class="timeline-date">{{ event.date }}</div>
+
+        <div class="timeline-content">
+          {% if event.type == "Mouvement" %}
+            <b>Mouvement :</b> {{ event.type_mouvement }}<br>
+            {{ event.champ_modifie }} : {{ event.ancienne_valeur }} → {{ event.nouvelle_valeur }}
+          {% else %}
+            <b>Sanction :</b> {{ event.type_sanction }}<br>
+            Motif : {{ event.motif }}
+            
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+
+    </div>
+    {% else %}
+    <p style="color:var(--muted)">Aucun historique</p>
+    {% endif %}
+  </div>
+
+</div>
+
+{% endblock %}

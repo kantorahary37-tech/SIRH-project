@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Connexion - SIRH</title>
+
+<style>
+:root {
+  --green-main: #2F5D50;
+  --green-soft: #3E7C6D;
+  --bg: #F5F7F6;
+  --text: #1F2D2A;
+  --muted: #6B7C78;
+  --white: #ffffff;
+}
+
+/* RESET */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* PAGE */
+body {
+  display: flex;
+  height: 100vh;
+  background: var(--bg);
+}
+
+/* ===== LEFT SIDE ===== */
+.left {
+  flex: 1;
+  background: linear-gradient(135deg, var(--green-main), var(--green-soft));
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* effet décoratif */
+.left::before {
+  content: "";
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 50%;
+  top: -80px;
+  left: -80px;
+}
+
+.left::after {
+  content: "";
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 50%;
+  bottom: -60px;
+  right: -60px;
+}
+
+/* LOGO */
+.left img {
+  width: 120px;
+  margin-bottom: 20px;
+  z-index: 2;
+}
+
+/* TITLE */
+.left h1 {
+  font-size: 38px;
+  letter-spacing: 3px;
+  z-index: 2;
+}
+
+.left p {
+  margin-top: 10px;
+  opacity: 0.9;
+  font-size: 14px;
+  z-index: 2;
+}
+
+/* ===== RIGHT SIDE ===== */
+.right {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* FORM CARD */
+.login-box {
+  width: 360px;
+  background: var(--white);
+  border: 1px solid #D6E2DE;
+  border-radius: 10px;
+  padding: 35px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+/* TITLE FORM */
+.login-box h2 {
+  color: var(--green-main);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* INPUT */
+.input-group {
+  margin-bottom: 18px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #D6E2DE;
+  outline: none;
+  font-size: 14px;
+  transition: 0.2s;
+}
+
+.input-group input:focus {
+  border-color: var(--green-main);
+  box-shadow: 0 0 0 3px rgba(47,93,80,0.15);
+}
+
+/* BUTTON */
+button {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--green-main), var(--green-soft));
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(47,93,80,0.25);
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  body {
+    flex-direction: column;
+  }
+
+  .left {
+    height: 40vh;
+  }
+
+  .right {
+    height: 60vh;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- LEFT -->
+<div class="left">
+  <img src="{{ url_for('static', filename='img/logo.png') }}" alt="SIRH">
+  <h1>SIRH</h1>
+  <p>Direction Générale – Gestion des Ressources Humaines</p>
+</div>
+
+<!-- RIGHT -->
+<div class="right">
+
+    <form method="POST" class="login-box">
+
+    <h2>Connexion</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <p style="color:{{ 'red' if category == 'danger' else 'green' }}; text-align:center; margin-bottom:15px; font-size:14px;">
+            {{ message }}
+          </p>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="input-group">
+      <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+    </div>
+
+    <div class="input-group">
+      <input type="password" name="password" placeholder="Mot de passe" required>
+    </div>
+
+    <button type="submit">Se connecter</button>
+
+  </form>
+
+</div>
+
+</body>
+</html>

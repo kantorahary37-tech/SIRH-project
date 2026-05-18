@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Changer mot de passe - SIRH</title>
+<style>
+:root {
+  --green-main: #2F5D50;
+  --green-soft: #3E7C6D;
+  --bg: #f4f7f6;
+  --text: #1F2D2A;
+}
+* { margin:0; padding:0; box-sizing:border-box; font-family:"Segoe UI",sans-serif; }
+body {
+  background: var(--bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+.card {
+  background: white;
+  width: 420px;
+  border-radius: 14px;
+  padding: 35px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+.card h2 {
+  color: var(--green-main);
+  margin-bottom: 20px;
+  text-align: center;
+}
+label {
+  font-size: 13px;
+  color: #6b7a76;
+  margin-bottom: 4px;
+  display: block;
+}
+input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d6e2de;
+  border-radius: 8px;
+  outline: none;
+  font-size: 14px;
+  margin-bottom: 16px;
+  transition: 0.2s;
+}
+input:focus {
+  border-color: var(--green-main);
+  box-shadow: 0 0 0 3px rgba(47,93,80,0.15);
+}
+button {
+  width: 100%;
+  padding: 11px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--green-main), var(--green-soft));
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(47,93,80,0.25);
+}
+.retour {
+  display: block;
+  text-align: center;
+  margin-top: 16px;
+  color: var(--green-soft);
+  text-decoration: none;
+  font-size: 13px;
+}
+.retour:hover { text-decoration: underline; }
+.flash { text-align:center; margin-bottom:15px; font-size:14px; }
+.flash.danger { color: #dc2626; }
+.flash.success { color: #16a34a; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>Changer mot de passe</h2>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <p class="flash {{ category }}">{{ message }}</p>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="POST">
+    <label>Nom d'utilisateur</label>
+    <input type="text" value="{{ current_user.username }}" disabled style="background:#f3f5f4;">
+
+    <label>Ancien mot de passe</label>
+    <input type="password" name="ancien_mdp" required>
+
+    <label>Nouveau mot de passe</label>
+    <input type="password" name="nouveau_mdp" required minlength="6">
+
+    <label>Confirmer le nouveau mot de passe</label>
+    <input type="password" name="confirmation" required minlength="6">
+
+    <button type="submit">Enregistrer</button>
+  </form>
+
+  <a href="/dashboard" class="retour">&#8592; Retour au tableau de bord</a>
+</div>
+</body>
+</html>
