@@ -273,34 +273,34 @@
       </div>
     </header>
 <style>
-
-  /* ===== CONTENU PRINCIPAL ===== */
   main {
-      padding: 30px 40px;
-      font-family: "Segoe UI", , sans-serif;
-      background: #F5F7F6;
+      padding: 28px 32px;
+      background: var(--bg);
+      font-family: "Segoe UI", -apple-system, sans-serif;
   }
-  
-  main h2 {
-      font-size: 24px;
-      color: #2F5D50;
-      margin-bottom: 20px;
+
+  .page-title {
+      font-size: 22px;
       font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
   }
+  .page-title i { color: var(--green-main); font-size: 20px; }
   
-  /* ===== FORMULAIRE GLOBAL ===== */
   .agent-form {
       display: flex;
       flex-wrap: wrap;
       gap: 20px;
-      background: #ffffff;
+      background: #fff;
       padding: 25px;
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-      border: 1px solid #e6eeec;
+      border-radius: var(--radius);
+      box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      border: 1px solid var(--border);
   }
   
-  /* ===== COLONNES ===== */
   .form-column {
       flex: 1 1 280px;
       display: flex;
@@ -308,33 +308,24 @@
       gap: 12px;
   }
   
-  /* TITRES COLONNES */
   .form-column h3 {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 600;
-      color: #3E7C6D;
-      margin-bottom: 10px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid #dce7e4;
+      color: var(--green-main);
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border);
   }
   
-  /* ===== LABELS ===== */
   label {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
-      color: #4b5d59;
-      margin-bottom: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      margin-bottom: 1px;
   }
   
-  
-  
-  /* TEXTAREA */
-  textarea {
-      min-height: 90px;
-      resize: vertical;
-  }
-  
-  /* ===== BOUTONS ===== *//* ===== INPUTS / SELECT / TEXTAREA ===== */
   input[type="text"],
   input[type="date"],
   select,
@@ -342,104 +333,86 @@
       width: 100%;
       padding: 10px 12px;
       font-size: 14px;
-      border-radius: 10px;
-      border: 1px solid #d7e3df;
-      background: #f9fbfa;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #f9fafb;
       outline: none;
-      transition: all 0.2s ease;
-      color: #1f2d2a;
+      transition: all .2s;
+      color: var(--text);
   }
   
-  /* HOVER */
-  input:hover,
-  select:hover,
-  textarea:hover {
-      border-color: #3E7C6D;
+  input:hover, select:hover, textarea:hover { border-color: var(--green-soft); }
+  .search input[type="text"],
+  .search input[type="text"]:hover,
+  .search input[type="text"]:focus {
+    width: 240px; padding: 8px 14px 8px 34px; border-radius: 20px;
+    border: none; background: rgba(255,255,255,.15); color: #fff;
+    box-shadow: none;
   }
   
-  /* FOCUS (effet pro vert) */
-  input:focus,
-  select:focus,
-  textarea:focus {
-      border-color: #2F5D50;
-      background: #ffffff;
-      box-shadow: 0 0 0 3px rgba(62,124,109,0.15);
+  input:focus, select:focus, textarea:focus {
+      border-color: var(--green-main);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(47,93,80,.12);
   }
+  
+  textarea { min-height: 90px; resize: vertical; }
+  
   .btns {
       width: 100%;
       display: flex;
       gap: 12px;
-      margin-top: 15px;
+      margin-top: 10px;
   }
   
-  /* bouton principal */
   .btn-add {
-      background: #2F5D50;
-      color: white;
-      padding: 10px 16px;
-      border-radius: 10px;
+      background: var(--green-main);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
       border: none;
       cursor: pointer;
       font-weight: 600;
-      transition: 0.2s;
+      transition: background .2s;
   }
+  .btn-add:hover { background: var(--green-dark); }
   
-  .btn-add:hover {
-      background: #24473d;
-  }
-  
-  /* reset */
   .btn-reset {
       background: #e7f0ed;
-      color: #2F5D50;
-      padding: 10px 16px;
-      border-radius: 10px;
+      color: var(--green-main);
+      padding: 10px 20px;
+      border-radius: 8px;
       border: none;
       cursor: pointer;
       font-weight: 600;
   }
+  .btn-reset:hover { background: #d7e6e1; }
   
-  .btn-reset:hover {
-      background: #d7e6e1;
-  }
-  
-  /* cancel */
   .btn-cancel {
       background: transparent;
       color: #b42318;
       border: 1px solid #f3c1bb;
-      padding: 10px 16px;
-      border-radius: 10px;
+      padding: 10px 20px;
+      border-radius: 8px;
       text-decoration: none;
       font-weight: 600;
   }
+  .btn-cancel:hover { background: #fff2f0; }
   
-  .btn-cancel:hover {
-      background: #fff2f0;
-  }
-  
-  /* ===== RESPONSIVE ===== */
   @media (max-width: 900px) {
-      .agent-form {
-          flex-direction: column;
-      }
-  
-      .form-column {
-          flex: 1 1 100%;
-      }
-  
-      .btns {
-          flex-direction: column;
-      }
+      main { padding: 16px; }
+      .agent-form { flex-direction: column; }
+      .form-column { flex: 1 1 100%; }
+      .btns { flex-direction: column; }
   }
-  
-  </style>
+</style>
 
 
 
-  <!-- FORMULAIRE -->
   <main>
-    <h2>Ajouter un agent</h2>
+    <div class="page-title">
+      <i class="fa-solid fa-user-plus"></i> Ajouter un agent
+    </div>
 
     <form class="agent-form" action="{{ url_for('ajouter_agent') }}" method="post" enctype="multipart/form-data">
 

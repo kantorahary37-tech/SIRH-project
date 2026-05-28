@@ -274,118 +274,118 @@
     </header>
 
 <style>
- 
 main {
-  padding: 25px 40px;
-  background: #F5F7F6;
+  padding: 28px 32px;
+  background: var(--bg);
   font-family: "Segoe UI", sans-serif;
 }
 
-main h1 {
+.page-title {
   font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-bottom: 20px;
-  color: #2F5D50;
+}
+.page-title i {
+  color: var(--green-main);
+  font-size: 20px;
 }
 
-/* TABLE CARD STYLE */
-table {
+.table-card {
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  overflow: hidden;
+}
+.table-card table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
 }
-
-/* HEADER */
-thead {
-  background: #2F5D50;
+.table-card thead {
+  background: var(--green-main);
 }
-
-th {
-  color: white;
-  padding: 14px;
-  font-size: 12px;
+.table-card th {
+  color: #fff;
+  padding: 12px 14px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* ROWS */
-td {
-  padding: 12px;
-  font-size: 13px;
-  color: #1F2D2A;
-  border-bottom: 1px solid #eef2f1;
-}
-
-/* HOVER */
-tbody tr:hover {
-  background: #f3f7f6;
-  transform: scale(1.001);
-  transition: 0.2s;
-}
-
-/* TYPE BADGES */
-td:nth-child(4) {
+  letter-spacing: .5px;
   font-weight: 600;
 }
-
-td:nth-child(4):contains("Ajout") {
-  color: #16a34a;
+.table-card td {
+  padding: 11px 14px;
+  font-size: 13px;
+  color: var(--text);
+  border-bottom: 1px solid #f0f2f1;
+}
+.table-card tbody tr:last-child td {
+  border-bottom: none;
+}
+.table-card tbody tr:hover {
+  background: #f5f8f7;
 }
 
-td:nth-child(4):contains("Modification") {
-  color: #f59e0b;
+.type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
 }
+.type-badge.add { background: #eaf6f2; color: #0f6e5a; }
+.type-badge.edit { background: #fff7ed; color: #c2410c; }
+.type-badge.delete { background: #fef2f2; color: #dc2626; }
 
-td:nth-child(4):contains("Suppression") {
-  color: #dc2626;
-}
-
-/* RESPONSIVE */
 @media (max-width: 900px) {
-  th, td {
-    padding: 10px;
-    font-size: 12px;
-  }
+  main { padding: 16px; }
+  .table-card th, .table-card td { padding: 8px 10px; font-size: 11px; }
 }
+</style>
 
-  </style>
-  
-  <!-- CONTENU PRINCIPAL -->
-  <main>
-    <h1>Historique des mouvements</h1>
+<main>
+  <div class="page-title">
+    <i class="fa-solid fa-arrows-rotate"></i> Historique des mouvements
+  </div>
 
-<table>
-    <thead>
+  <div class="table-card">
+    <table>
+      <thead>
         <tr>
-            <th>IM</th>
-            <th>Agent</th>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Champ</th>
-            <th>Avant</th>
-            <th>Après</th>
-            <th>Auteur</th>
+          <th>IM</th>
+          <th>Agent</th>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Champ</th>
+          <th>Avant</th>
+          <th>Après</th>
+          <th>Auteur</th>
         </tr>
-    </thead>
-    <tbody>
+      </thead>
+      <tbody>
         {% for m in mouvements %}
         <tr>
-            <td>{{ m.matricule }}</td>
-            <td>{{ m.agent}}</td>
-            <td>{{ m.date_mouvement }}</td>
-            <td>{{ m.type_mouvement }}</td>
-            <td>{{ m.champ_modifie }}</td>
-            <td>{{ m.ancienne_valeur }}</td>
-            <td>{{ m.nouvelle_valeur }}</td>
-            <td>{{ m.auteur }}</td>
+          <td>{{ m.matricule }}</td>
+          <td>{{ m.agent }}</td>
+          <td>{{ m.date_mouvement }}</td>
+          <td>
+            {% set t = m.type_mouvement|lower %}
+            <span class="type-badge {{ 'add' if 'ajout' in t else 'edit' if 'modif' in t else 'delete' if 'supp' in t else '' }}">
+            {{ m.type_mouvement }}
+            </span>
+          </td>
+          <td>{{ m.champ_modifie }}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.ancienne_valeur }}</td>
+          <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ m.nouvelle_valeur }}</td>
+          <td>{{ m.auteur }}</td>
         </tr>
         {% endfor %}
-    </tbody>
-</table>
-
-  </main>
+      </tbody>
+    </table>
+  </div>
+</main>
 
 </body>
 </html>

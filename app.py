@@ -188,10 +188,13 @@ def profil():
 @app.route('/personnels_actifs')
 @login_required
 def personnels_actifs():
-    agents = Agent.query.filter_by(statut="Actif").all()
-    total_actifs = len(agents)
+    page = request.args.get('page', 1, type=int)
+    per_page = 30
+    pagination = Agent.query.filter_by(statut="Actif").order_by(Agent.agent).paginate(page=page, per_page=per_page, error_out=False)
+    agents = pagination.items
+    total_actifs = pagination.total
     
-    return render_template('personnels_actifs.html', agents=agents,total_actifs=total_actifs, page='actifs')
+    return render_template('personnels_actifs.html', agents=agents, pagination=pagination, total_actifs=total_actifs, page='actifs')
 
 
 
@@ -670,10 +673,13 @@ def importer_agents():
 @login_required
 @app.route('/personnels_inactifs')
 def personnels_inactifs():
-    agents = Agent.query.filter_by(statut="Inactif").all()
-    total_inactifs = len(agents)
+    page = request.args.get('page', 1, type=int)
+    per_page = 30
+    pagination = Agent.query.filter_by(statut="Inactif").order_by(Agent.agent).paginate(page=page, per_page=per_page, error_out=False)
+    agents = pagination.items
+    total_inactifs = pagination.total
     
-    return render_template('personnels_inactifs.html', agents=agents,total_inactifs=total_inactifs, page='inactifs')
+    return render_template('personnels_inactifs.html', agents=agents, pagination=pagination, total_inactifs=total_inactifs, page='inactifs')
 
 from datetime import date, datetime
 from sqlalchemy import func
@@ -813,12 +819,16 @@ def calcul_age(date_naissance):
 
 @app.route("/sanctions")
 def sanctions():
-    sanctions_list = Sanction.query.all()
+    page = request.args.get('page', 1, type=int)
+    per_page = 30
+    pagination = Sanction.query.order_by(Sanction.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    sanctions_list = pagination.items
     agents = Agent.query.order_by(Agent.agent).all()
 
     return render_template(
         "sanctions.html",
         sanctions=sanctions_list,
+        pagination=pagination,
         agents=agents
     )
 @app.route("/sanctions/ajouter", methods=["GET", "POST"])
@@ -871,6 +881,8 @@ def repartition():
     statut = request.args.get('statut')
     poste_type = request.args.get('poste_type')
     poste_comptable = request.args.get('poste_comptable')
+    page = request.args.get('page', 1, type=int)
+    per_page = 30
 
     query = Agent.query
 
@@ -886,7 +898,8 @@ def repartition():
     if poste_comptable:
         query = query.filter(Agent.poste_comptable == poste_comptable)
 
-    agents = query.all()
+    pagination = query.order_by(Agent.agent).paginate(page=page, per_page=per_page, error_out=False)
+    agents = pagination.items
     
     # Listes DISTINCT pour filtres
     corps_list = [c[0] for c in db.session.query(Agent.corps).distinct().all() if c[0]]
@@ -894,10 +907,13 @@ def repartition():
     poste_type_list = [p[0] for p in db.session.query(Agent.poste_type).distinct().all() if p[0]]
     poste_comptable_list = [pc[0] for pc in db.session.query(Agent.poste_comptable).distinct().all() if pc[0]]
 
-   
+    total = pagination.total
+
     return render_template(
         'repartition.html',
         agents=agents,
+        pagination=pagination,
+        total=total,
         corps_list=corps_list,
         statut_list=statut_list,
         poste_type_list=poste_type_list,
@@ -910,8 +926,10 @@ def repartition():
 
 @app.route("/mouvements")
 def mouvements():
+    page = request.args.get('page', 1, type=int)
+    per_page = 30
 
-    mouvements = (
+    query = (
         db.session.query(
             Mouvement.id,
             Agent.agent.label("matricule"),
@@ -925,12 +943,14 @@ def mouvements():
         )
         .join(Agent, Mouvement.agents_id == Agent.id)
         .order_by(Mouvement.date_mouvement.desc())
-        .all()
     )
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    mouvements = pagination.items
 
     return render_template(
         "mouvements.html",
         mouvements=mouvements,
+        pagination=pagination,
         page="mouvements"
     )
 

@@ -352,7 +352,21 @@
         {% endfor %}
       </tbody>
     </table>
-
+    {% if pagination.pages > 1 %}
+    <div class="simple-pag">
+      {% if pagination.has_prev %}
+        <a href="?page={{ pagination.prev_num }}" class="pag-prev">◄ Précédent</a>
+      {% else %}
+        <span class="pag-prev disabled">◄ Précédent</span>
+      {% endif %}
+      <span class="pag-info">Page {{ pagination.page }} / {{ pagination.pages }}</span>
+      {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_num }}" class="pag-next">Suivant ►</a>
+      {% else %}
+        <span class="pag-next disabled">Suivant ►</span>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
 </main>
  <!-- MODAL -->
@@ -651,6 +665,30 @@ table input {
   from { opacity: 0; transform: translateY(10px) scale(0.97); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ===== SIMPLE PAGINATION ===== */
+.simple-pag {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid #eef2f1;
+  margin-top: 4px;
+}
+.pag-prev, .pag-next {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--green-main);
+  background: #f3f7f6;
+  transition: background .15s;
+}
+.pag-prev:hover, .pag-next:hover { background: #e2ebe8; }
+.pag-prev.disabled, .pag-next.disabled { opacity: .35; pointer-events: none; }
+.pag-info { font-size: 13px; color: var(--muted); font-weight: 500; }
 </style>
 
 
