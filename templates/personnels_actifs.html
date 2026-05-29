@@ -274,30 +274,28 @@ main {
   table-layout: fixed;
 }
 
+.table-card thead {
+  background: var(--green-main);
+}
 .table-card thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: linear-gradient(135deg, var(--green-main), var(--green-soft));
-  color: white;
-  font-size: 12px;
-  font-weight: 600;
+  color: #fff;
+  padding: 12px 14px;
+  font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 14px 12px;
-  border: none;
+  letter-spacing: .5px;
+  font-weight: 600;
 }
 
 .table-card tbody td {
-  padding: 10px 12px;
+  padding: 11px 14px;
   font-size: 13px;
+  color: var(--text);
+  border-bottom: 1px solid #f0f2f1;
   vertical-align: middle;
-  border-bottom: 1px solid #e8f5e9;
-  word-wrap: break-word;
 }
 
 .table-card tbody tr:hover {
-  background: #f9fbf9;
+  background: #f5f8f7;
 }
 
 .table-card tbody tr:last-child td {
@@ -466,14 +464,14 @@ main {
 
   <div class="nav-wrapper">
     <div class="nav-icons">
-      <a href="/dashboard" ><i class="fa-solid fa-gauge"></i></a>
-      <a href="/personnels_actifs" class="active"><i class="fa-solid fa-users"></i></a>
-      <a href="/personnels_inactifs"><i class="fa-solid fa-user-slash"></i></a>
-      <a href="/sanctions"><i class="fa-solid fa-gavel"></i></a>
-      <a href="/statistiques"><i class="fa-solid fa-chart-line"></i></a>
-      <a href="/repartition"><i class="fa-solid fa-diagram-project"></i></a>
-      <a href="/mouvements"><i class="fa-solid fa-arrows-rotate"></i></a>
-      <a href="/ajouter_agent"><i class="fa-solid fa-user-plus"></i></a>
+      <a href="/dashboard" title="Tableau de bord"><i class="fa-solid fa-gauge"></i></a>
+      <a href="/personnels_actifs" class="active" title="Agents actifs"><i class="fa-solid fa-users"></i></a>
+      <a href="/personnels_inactifs" title="Agents inactifs"><i class="fa-solid fa-user-slash"></i></a>
+      <a href="/sanctions" title="Sanctions"><i class="fa-solid fa-gavel"></i></a>
+      <a href="/statistiques" title="Statistiques"><i class="fa-solid fa-chart-line"></i></a>
+      <a href="/repartition" title="Répartition"><i class="fa-solid fa-diagram-project"></i></a>
+      <a href="/mouvements" title="Mouvements"><i class="fa-solid fa-arrows-rotate"></i></a>
+      <a href="/ajouter_agent" title="Ajouter un agent"><i class="fa-solid fa-user-plus"></i></a>
     </div>
   </div>
 </header>
@@ -527,7 +525,7 @@ main {
                 <col style="width:95px">
                 <col style="width:105px">
             </colgroup>
-            <thead class="text-center align-middle">
+            <thead>
                 <tr>
                     <th>Poste Comptable</th>
                     <th>IM</th>

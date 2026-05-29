@@ -262,13 +262,13 @@
       <div class="nav-wrapper">
         <div class="nav-icons">
           <a href="/dashboard" ><i class="fa-solid fa-gauge"></i></a>
-          <a href="/personnels_actifs"><i class="fa-solid fa-users"></i></a>
-          <a href="/personnels_inactifs"><i class="fa-solid fa-user-slash"></i></a>
+          <a href="/personnels_actifs" title="Agents actifs"><i class="fa-solid fa-users"></i></a>
+          <a href="/personnels_inactifs" title="Agents inactifs"><i class="fa-solid fa-user-slash"></i></a>
           <a href="/sanctions" ><i class="fa-solid fa-gavel"></i></a>
           <a href="/statistiques" ><i class="fa-solid fa-chart-line"></i></a>
-          <a href="/repartition" class="active"><i class="fa-solid fa-diagram-project"></i></a>
-          <a href="/mouvements"><i class="fa-solid fa-arrows-rotate"></i></a>
-          <a href="/ajouter_agent"><i class="fa-solid fa-user-plus"></i></a>
+          <a href="/repartition" class="active" title="Répartition"><i class="fa-solid fa-diagram-project"></i></a>
+          <a href="/mouvements" title="Mouvements"><i class="fa-solid fa-arrows-rotate"></i></a>
+          <a href="/ajouter_agent" title="Ajouter un agent"><i class="fa-solid fa-user-plus"></i></a>
         </div>
       </div>
     </header>
@@ -385,7 +385,7 @@ main {
 
 /* ===== TABLE ===== */
 .table-section { position: relative; }
-.table-wrap {
+.table-card {
   border-radius: var(--radius);
   box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
   overflow-x: auto;
@@ -514,7 +514,7 @@ tbody tr:hover { background: #f0f5f3; }
         <span class="effectif-count">{{ total }}</span>
       </div>
 
-      <div class="table-wrap">
+      <div class="table-card">
         <table>
           <thead>
             <tr>
