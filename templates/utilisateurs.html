@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion des utilisateurs - SIRH</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --bg: #f4f7f5;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #d9e3dd;
+      --brand: #2f5d50;
+      --brand-2: #3e7c6d;
+      --danger: #b91c1c;
+      --danger-bg: #fee2e2;
+      --success: #166534;
+      --success-bg: #dcfce7;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(62, 124, 109, 0.15), transparent 30%),
+        linear-gradient(180deg, #eef4f1 0%, var(--bg) 100%);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px 40px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-size: 30px;
+      color: var(--brand);
+    }
+
+    .title-block p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .top-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .link-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.85);
+      color: var(--brand);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid rgba(47, 93, 80, 0.08);
+      border-radius: 18px;
+      box-shadow: 0 18px 45px rgba(31, 41, 55, 0.08);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 20px 22px 12px;
+      border-bottom: 1px solid #edf2ef;
+    }
+
+    .card-header h2 {
+      margin: 0;
+      font-size: 20px;
+      color: var(--brand);
+    }
+
+    .card-header p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .card-body {
+      padding: 22px;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      font-size: 14px;
+      outline: none;
+      background: #fbfcfb;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--brand-2);
+      box-shadow: 0 0 0 4px rgba(62, 124, 109, 0.12);
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 13px 16px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .flash-list {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .flash {
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      border: 1px solid transparent;
+    }
+
+    .flash.success {
+      background: var(--success-bg);
+      border-color: #bbf7d0;
+      color: var(--success);
+    }
+
+    .flash.danger {
+      background: var(--danger-bg);
+      border-color: #fecaca;
+      color: var(--danger);
+    }
+
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .users-table th,
+    .users-table td {
+      padding: 14px 12px;
+      border-bottom: 1px solid #edf2ef;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .users-table th {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(62, 124, 109, 0.12);
+      color: var(--brand);
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: capitalize;
+    }
+
+    .hint {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 12px;
+      background: #f7faf8;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div class="title-block">
+        <h1>Gestion des utilisateurs</h1>
+        <p>Crée les comptes de connexion de l'application depuis ton compte administrateur.</p>
+      </div>
+      <div class="top-links">
+        <a class="link-btn" href="{{ url_for('dashboard') }}">Dashboard</a>
+        <a class="link-btn" href="{{ url_for('personnels_actifs') }}">Agents</a>
+        {% include 'panel_compte.html' %}
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-list">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="layout">
+      <section class="card">
+        <div class="card-header">
+          <h2>Nouveau compte</h2>
+          <p>Le mot de passe doit contenir au moins 6 caractères.</p>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            <div class="field">
+              <label for="username">Nom d'utilisateur</label>
+              <input id="username" name="username" type="text" required>
+            </div>
+
+            <div class="field">
+              <label for="password">Mot de passe</label>
+              <input id="password" name="password" type="password" minlength="6" required>
+            </div>
+
+            <div class="field">
+              <label for="role">Rôle</label>
+              <select id="role" name="role" required>
+                {% for role in roles %}
+                  <option value="{{ role }}">{{ role|capitalize }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <button class="submit-btn" type="submit">Créer l'utilisateur</button>
+          </form>
+
+          <div class="hint">
+            Le compte <strong>admin</strong> sert à administrer les accès.
+            Utilise plutôt <strong>gestionnaire</strong> ou <strong>lecteur</strong> pour les comptes métier.
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Comptes existants</h2>
+          <p>{{ users|length }} utilisateur{{ 's' if users|length > 1 else '' }} enregistré{{ 's' if users|length > 1 else '' }}.</p>
+        </div>
+        <div class="card-body">
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nom d'utilisateur</th>
+                <th>Rôle</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for user in users %}
+                <tr>
+                  <td>{{ user.id }}</td>
+                  <td>{{ user.username }}</td>
+                  <td><span class="role-badge">{{ user.role }}</span></td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="3">Aucun utilisateur trouvé.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,2 +1,6 @@
 flask
-flask-mysql-connector
+flask-login
+flask-sqlalchemy
+openpyxl
+pandas
+pymysql

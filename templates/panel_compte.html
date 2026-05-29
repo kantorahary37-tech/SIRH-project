@@ -18,6 +18,9 @@
         </div>
 
         <div class="panel-body">
+            {% if current_user.role == 'admin' %}
+            <a href="/utilisateurs" class="panel-item"><i class="fa-solid fa-user-shield"></i> Utilisateurs</a>
+            {% endif %}
             <a href="/changer_mdp" class="panel-item"><i class="fa-solid fa-key"></i> Changer mot de passe</a>
             <a href="/logout" class="panel-item danger"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</a>
         </div>

@@ -1,7 +1,7 @@
 from models import db
 from datetime import date, datetime
 
-print("=== AGENTS.PY CHARGÉ ===")
+
 class Agent(db.Model):
     __tablename__ = 'agents'
 
@@ -31,13 +31,13 @@ class Agent(db.Model):
 
     # 🔵 RELATIONS
     mouvements = db.relationship(
-    'Mouvement',
-    backref='agent_parent',
-    lazy=True,
-    foreign_keys='Mouvement.agents_id'
-)
+        'Mouvement',
+        backref='agent_parent',
+        lazy='selectin',
+        foreign_keys='Mouvement.agents_id'
+    )
     
-    sanctions = db.relationship("Sanction", back_populates="agent")
+    sanctions = db.relationship("Sanction", back_populates="agent", lazy="selectin")
 
     # -----------------------
     # AGE
@@ -57,10 +57,9 @@ class Agent(db.Model):
     # -----------------------
     @property
     def anciennete(self):
-        if self.date_premiere_prise_service:
-            if not self.date_premiere_prise_service:
-                return ""
-        
+        if not self.date_premiere_prise_service:
+            return ""
+
         try:
             if isinstance(self.date_premiere_prise_service, str):
                 if self.date_premiere_prise_service in ['0000-00-00', '', 'None']:
@@ -73,12 +72,8 @@ class Agent(db.Model):
                 prise = self.date_premiere_prise_service
 
             return date.today().year - prise.year
-        
-    
         except (ValueError, TypeError):
             return ""
-
-    
 
     @property
     def historique_complet(self):

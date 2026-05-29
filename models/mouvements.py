@@ -1,5 +1,7 @@
 from datetime import datetime
+
 from models import db
+
 
 class Mouvement(db.Model):
     __tablename__ = "mouvements"
@@ -22,26 +24,35 @@ class Mouvement(db.Model):
     auteur = db.Column(db.String(100))
 
     def __repr__(self):
-        return f"<Mouvement {self.type_mouvement} - {self.agent.agent}>"
+        agent_name = self.agent.agent if self.agent else "inconnu"
+        return f"<Mouvement {self.type_mouvement} - {agent_name}>"
+
 
 def enregistrer_mouvement(
-    agents_id,
-    champ,
-    ancienne_valeur,
-    nouvelle_valeur,
-    auteur,
-    type_mouvement="modification"
+    agents_id=None,
+    champ=None,
+    ancienne_valeur=None,
+    nouvelle_valeur=None,
+    auteur="system",
+    type_mouvement="modification",
+    commit=False,
+    agent_id=None,
 ):
+    target_agent_id = agents_id if agents_id is not None else agent_id
+    if target_agent_id is None:
+        raise ValueError("agents_id est obligatoire pour enregistrer un mouvement")
+
     mouvement = Mouvement(
-        agents_id=agents_id,
+        agents_id=target_agent_id,
         champ_modifie=champ,
-        ancienne_valeur=str(ancienne_valeur),
-        nouvelle_valeur=str(nouvelle_valeur),
+        ancienne_valeur="" if ancienne_valeur is None else str(ancienne_valeur),
+        nouvelle_valeur="" if nouvelle_valeur is None else str(nouvelle_valeur),
         auteur=auteur,
         type_mouvement=type_mouvement,
         date_mouvement=datetime.utcnow()
     )
 
     db.session.add(mouvement)
-    db.session.commit()
+    if commit:
+        db.session.commit()
     return mouvement

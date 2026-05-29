@@ -1,37 +1,22 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-from models import db
-import mysql.connector
-from models.agents import Agent
-from models.users import User
-from models.mouvements import Mouvement
-from flask import session
-from models.mouvements import enregistrer_mouvement
-from models.sanctions import Sanction
-import pandas as pd
-print(enregistrer_mouvement)
-from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from datetime import date
-from sqlalchemy import extract
-
+import logging
+import os
 from datetime import date, datetime
-from sqlalchemy import extract
-from models.documents import Document
+from functools import wraps
 
-import os
-import math
-from datetime import date
-from flask import request, jsonify
-from datetime import date
-from collections import defaultdict
-from sqlalchemy import extract
-from sqlalchemy import or_
-from flask import request
-from werkzeug.security import generate_password_hash, check_password_hash
+import pandas as pd
+from flask import Flask, flash, jsonify, redirect, render_template, request, session, url_for
+from flask_login import LoginManager, current_user, login_required, login_user, logout_user
+from sqlalchemy import extract, func
+from sqlalchemy.orm import selectinload
+from werkzeug.utils import secure_filename
 
-import os
-print("DB UTILISÉE PAR FLASK:", os.path.abspath("database.db"))
+from models import db
+from models.agents import Agent
+from models.mouvements import Mouvement, enregistrer_mouvement
+from models.sanctions import Sanction
+from models.users import User
+
+logger = logging.getLogger(__name__)
 
 LISTE_CORPS = [
     "Inspecteur de trésor",
@@ -59,19 +44,67 @@ LISTE_CORPS = [
     "Agent détaché"
 ]
 
+AGENT_FIELDS = [
+    "agent",
+    "matricule",
+    "telephone",
+    "genre",
+    "date_naissance",
+    "statut",
+    "corps",
+    "poste_type",
+    "poste_comptable",
+    "date_premiere_prise_service",
+    "historique_formations",
+    "epoux_epouse_nom_poste",
+    "promotion_corps",
+]
+
+AGENT_INACTIVITY_FIELDS = [
+    "motif_inactivite",
+    "date_inactivite",
+    "commentaire_inactivite",
+]
+
+USER_ROLES = ["admin", "gestionnaire", "lecteur"]
+DEFAULT_ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+DEFAULT_ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
+
+DATE_FIELDS = {
+    "date_naissance",
+    "date_premiere_prise_service",
+    "date_inactivite",
+}
+
+IMPORT_RENAME_MAP = {
+    "agents": "agent",
+    "postes comptables": "poste_comptable",
+    "date de naissance": "date_naissance",
+    "poste type": "poste_type",
+    "date de premiere prise de service": "date_premiere_prise_service",
+    "historique formations": "historique_formations",
+    "historique des formations": "historique_formations",
+    "epoux ou epouse": "epoux_epouse_nom_poste",
+    "promotion corps": "promotion_corps",
+    "numero telephone": "telephone",
+    "im": "matricule",
+}
+
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
 
 
 app = Flask(__name__)
-app.secret_key = "dev"  # nécessaire pour les messages flash
-app.secret_key = "sirh_secret_key"  # à sécuriser plus tard
-
-# === CONFIG BASE DE DONNÉES ===
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root@localhost/sirh'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config.update(
+    SECRET_KEY=os.getenv("SECRET_KEY", "sirh_secret_key"),
+    SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", "mysql+pymysql://root@localhost/sirh"),
+    SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    SQLALCHEMY_ENGINE_OPTIONS={"pool_pre_ping": True},
+    UPLOAD_FOLDER=UPLOAD_FOLDER,
+)
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 db.init_app(app)
 
-# === FLASK-LOGIN ===
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -80,64 +113,250 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
-def get_db():
-    return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="sirh"
+
+def admin_required(view_func):
+    @wraps(view_func)
+    @login_required
+    def wrapped_view(*args, **kwargs):
+        if current_user.role != "admin":
+            flash("Accès réservé à l'administrateur.", "danger")
+            return redirect(url_for("dashboard"))
+        return view_func(*args, **kwargs)
+
+    return wrapped_view
+
+
+def normalize_value(value):
+    if value is None:
+        return None
+
+    try:
+        if pd.isna(value):
+            return None
+    except TypeError:
+        pass
+
+    if isinstance(value, str):
+        value = value.strip()
+        return value or None
+
+    return value
+
+
+def parse_optional_date(value):
+    value = normalize_value(value)
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+
+    parsed = pd.to_datetime(value, dayfirst=True, errors="coerce")
+    if pd.isna(parsed):
+        return None
+    return parsed.date()
+
+
+def normalize_genre(value):
+    value = normalize_value(value)
+    if value is None:
+        return None
+
+    normalized = str(value).upper()
+    if normalized in {"M", "MALE", "H", "MASCULIN", "HOMME"}:
+        return "Homme"
+    if normalized in {"F", "FEMALE", "FEMININ", "FEMME"}:
+        return "Femme"
+    return str(value)
+
+
+def normalize_matricule(value):
+    value = normalize_value(value)
+    if value is None:
+        return None
+    return str(value).replace(".0", "").strip() or None
+
+
+def normalize_agent_value(field, value):
+    if field == "matricule":
+        return normalize_matricule(value)
+    if field == "genre":
+        return normalize_genre(value)
+    if field in DATE_FIELDS:
+        return parse_optional_date(value)
+
+    value = normalize_value(value)
+    if value is None:
+        return None
+
+    return str(value) if isinstance(value, (int, float)) else value
+
+
+def build_agent_payload(source, fields, defaults=None):
+    payload = {
+        field: normalize_agent_value(field, source.get(field))
+        for field in fields
+    }
+
+    for field, value in (defaults or {}).items():
+        if payload.get(field) is None:
+            payload[field] = value
+
+    return payload
+
+
+def build_merged_agent_payload(agent, source, fields, defaults=None):
+    merged_source = {
+        field: source.get(field, getattr(agent, field))
+        for field in fields
+    }
+    return build_agent_payload(merged_source, fields, defaults=defaults)
+
+
+def apply_agent_payload(agent, payload, keep_existing=False):
+    for field, value in payload.items():
+        if keep_existing and value is None:
+            continue
+        setattr(agent, field, value)
+
+
+def serialize_for_compare(value):
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+    return "" if value is None else str(value)
+
+
+def calculate_age(value, today=None):
+    target_date = parse_optional_date(value)
+    if target_date is None:
+        return None
+
+    today = today or date.today()
+    return today.year - target_date.year - (
+        (today.month, today.day) < (target_date.month, target_date.day)
     )
 
+
+def serialize_agent(agent):
+    return {
+        "id": agent.id,
+        "matricule": agent.matricule,
+        "agent": agent.agent,
+        "telephone": agent.telephone,
+        "genre": agent.genre,
+        "date_naissance": agent.date_naissance.isoformat() if agent.date_naissance else None,
+        "statut": agent.statut,
+        "corps": agent.corps,
+        "poste_type": agent.poste_type,
+        "poste_comptable": agent.poste_comptable,
+        "date_premiere_prise_service": (
+            agent.date_premiere_prise_service.isoformat()
+            if agent.date_premiere_prise_service else None
+        ),
+        "historique_formations": agent.historique_formations,
+        "epoux_epouse_nom_poste": agent.epoux_epouse_nom_poste,
+        "promotion_corps": agent.promotion_corps,
+        "motif_inactivite": agent.motif_inactivite,
+        "date_inactivite": agent.date_inactivite.isoformat() if agent.date_inactivite else None,
+        "commentaire_inactivite": agent.commentaire_inactivite,
+    }
+
+
+def collect_original_values(agent, fields):
+    return {field: getattr(agent, field) for field in fields}
+
+
+def record_agent_movements(agent_id, original_values, new_values, auteur):
+    for field, ancienne_valeur in original_values.items():
+        nouvelle_valeur = new_values.get(field)
+        if serialize_for_compare(ancienne_valeur) == serialize_for_compare(nouvelle_valeur):
+            continue
+
+        type_mouvement = "modification"
+        if field == "statut" and ancienne_valeur == "Inactif" and nouvelle_valeur == "Actif":
+            type_mouvement = "reactivation"
+        elif field == "statut" and ancienne_valeur == "Actif" and nouvelle_valeur == "Inactif":
+            type_mouvement = "inactivation"
+
+        enregistrer_mouvement(
+            agents_id=agent_id,
+            champ=field,
+            ancienne_valeur=serialize_for_compare(ancienne_valeur),
+            nouvelle_valeur=serialize_for_compare(nouvelle_valeur),
+            auteur=auteur,
+            type_mouvement=type_mouvement,
+        )
+
+
+def normalize_import_columns(df):
+    df.columns = df.columns.str.strip().str.lower()
+
+    for old_name, new_name in IMPORT_RENAME_MAP.items():
+        matching_columns = [col for col in df.columns if old_name in col]
+        for column in matching_columns:
+            df.rename(columns={column: new_name}, inplace=True)
+
+    if "agent" not in df.columns:
+        for column in df.columns:
+            if any(token in column for token in ["nom", "prenom", "full", "employe"]):
+                df.rename(columns={column: "agent"}, inplace=True)
+                break
+
+    return df
+
+
+def get_existing_agents_by_matricule(matricules):
+    if not matricules:
+        return {}
+
+    existing_agents = Agent.query.filter(Agent.matricule.in_(matricules)).all()
+    return {agent.matricule: agent for agent in existing_agents}
+
+
+def create_user_account(username, password, role="gestionnaire"):
+    username = normalize_value(username)
+    role = normalize_value(role) or "gestionnaire"
+
+    if not username:
+        raise ValueError("Le nom d'utilisateur est obligatoire.")
+    if not password or len(password) < 6:
+        raise ValueError("Le mot de passe doit faire au moins 6 caractères.")
+    if role not in USER_ROLES:
+        raise ValueError("Le rôle sélectionné est invalide.")
+    if User.query.filter_by(username=username).first():
+        raise ValueError("Ce nom d'utilisateur existe déjà.")
+
+    user = User(username=username, role=role)
+    user.set_password(password)
+    db.session.add(user)
+    return user
+
 # === ROUTES PRINCIPALES ===
-@login_required
 @app.route('/')
-
-
-
 @app.route("/dashboard")
 @login_required
 def dashboard():
-
     today = date.today()
 
-    # --- KPI ---
     total_actifs = Agent.query.filter_by(statut="Actif").count()
     total_inactifs = Agent.query.filter_by(statut="Inactif").count()
 
-    # Nouveaux agents du mois
     nouveaux_agents = Agent.query.filter(
         extract("month", Agent.date_premiere_prise_service) == today.month,
         extract("year", Agent.date_premiere_prise_service) == today.year
     ).count()
 
-    # Proches de la retraite (55 à 59 ans)
-    agents_avec_date = Agent.query.filter(
+    dates_naissance = db.session.query(Agent.date_naissance).filter(
         Agent.date_naissance.isnot(None)
     ).all()
 
-    proches_retraite = 0
+    proches_retraite = sum(
+        1
+        for (date_naissance,) in dates_naissance
+        if (age := calculate_age(date_naissance, today)) is not None and 55 <= age < 60
+    )
 
-    for a in agents_avec_date:
-
-        # ⚡ Conversion si nécessaire
-        if isinstance(a.date_naissance, str):
-            try:
-                date_naissance = datetime.strptime(a.date_naissance, "%Y-%m-%d").date()
-            except ValueError:
-                # Si la date est mal formatée, on ignore cet agent
-                continue
-        else:
-            date_naissance = a.date_naissance
-
-        # Calcul de l'âge
-        age = today.year - date_naissance.year - (
-            (today.month, today.day) < (date_naissance.month, date_naissance.day)
-        )
-
-        if 55 <= age < 60:
-            proches_retraite += 1
-
-    # Derniers agents ajoutés ce mois (max 5)
     derniers_agents = Agent.query.filter(
         extract("month", Agent.date_premiere_prise_service) == today.month,
         extract("year", Agent.date_premiere_prise_service) == today.year
@@ -189,7 +408,6 @@ def profil():
     return render_template("profil.html", page="profil")
 
 
-@login_required
 @app.route('/personnels_actifs')
 @login_required
 def personnels_actifs():
@@ -203,69 +421,17 @@ def personnels_actifs():
 
 
 
-from datetime import datetime, date
-
-def construire_historique(agent):
-    print("Agent ID :", agent.id)
-    print("Mouvements :", agent.mouvements)
-    print("Sanctions :", agent.sanctions)
-
-    historique = []
-
-    # 🔹 Mouvements
-    if hasattr(agent, "mouvements"):
-        for m in agent.mouvements:
-
-            d = m.date_mouvement
-            if isinstance(d, date) and not isinstance(d, datetime):
-                d = datetime.combine(d, datetime.min.time())
-
-            historique.append({
-                "date": d,
-                "type": "Mouvement",
-                "type_mouvement": m.type_mouvement,
-                "champ": m.champ_modifie,
-                "ancienne_valeur": m.ancienne_valeur,
-                "nouvelle_valeur": m.nouvelle_valeur,
-                
-                "auteur": m.auteur
-            })
-
-    # 🔹 Sanctions
-    if hasattr(agent, "sanctions"):
-        for s in agent.sanctions:
-
-            d = s.date_traitement
-            if isinstance(d, date) and not isinstance(d, datetime):
-                d = datetime.combine(d, datetime.min.time())
-
-            historique.append({
-                "date": d,
-                "type": "Sanction",
-                "motif": s.motif,
-                "statut": s.statut,
-                "date_levee": s.date_levee,
-                
-                "auteur": getattr(s, "auteur", None)
-            })
-
-    # 🔹 Trier du plus récent au plus ancien
-    historique = sorted(
-        historique,
-        key=lambda x: x["date"] if x["date"] else datetime.min,
-        reverse=True
-    )
-    
-
-    return historique
-
 @app.route("/fiche/<int:id>")
 @login_required
 def fiche_agent(id):
-
-    agent = Agent.query.get_or_404(id)
-
-    # historique
+    agent = (
+        Agent.query.options(
+            selectinload(Agent.mouvements),
+            selectinload(Agent.sanctions),
+        )
+        .filter_by(id=id)
+        .first_or_404()
+    )
     historique = agent.historique_complet
 
     return render_template(
@@ -275,82 +441,19 @@ def fiche_agent(id):
     )
 
 
-def calcul_age(date_naissance):
-    if not date_naissance:
-        return None
-    today = datetime.today()
-    return today.year - date_naissance.year - (
-        (today.month, today.day) < (date_naissance.month, date_naissance.day)
-    )
-
-def calcul_anciennete(date_service):
-    if not date_service:
-        return None
-    today = datetime.today()
-    return today.year - date_service.year
-
-@login_required
 @app.route('/api/agents_inactifs')
+@login_required
 def api_agents_inactifs():
     agents = Agent.query.filter_by(statut="Inactif").all()
-    data = []
-    for a in agents:
-        data.append({
-            "id": a.id,
-            "matricule": a.matricule,
-            "agent": a.agent,
-            "telephone": a.telephone,
-            "genre": a.genre,
-            "date_naissance": a.date_naissance.isoformat() if a.date_naissance else None,
-            "statut": a.statut,
-            "corps": a.corps,
-            "poste_type": a.poste_type,
-            "poste_comptable": a.poste_comptable,
-            "date_premiere_prise_service": a.date_premiere_prise_service.isoformat() if a.date_premiere_prise_service else None,
-            "promotion_corps": a.promotion_corps,
-            
-            "epoux_epouse_nom_poste": a.epoux_epouse_nom_poste,
-            "historique_formations": a.historique_formations,
-            "motif_inactivite": a.motif_inactivite,
-            "date_inactivite": a.date_inactivite.isoformat() if a.date_inactivite else None,
-            "commentaire_inactivite": a.commentaire_inactivite
-        })
-    return jsonify(data)
-
-from flask import Flask, request, redirect, url_for, flash
-from werkzeug.utils import secure_filename
-import os
+    return jsonify([serialize_agent(agent) for agent in agents])
 
 
-
-
-
-# -----------------------------
-# CONFIGURATION UPLOAD
-# -----------------------------
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-print("[INFO] Dossier upload configuré :", UPLOAD_FOLDER)
-
- 
-# -----------------------------
-# ROUTE IMPORT AGENTS
-# -----------------------------
-@login_required
 @app.route('/importer_agents', methods=['POST'])
+@login_required
 def importer_agents():
-    print("\n========== DEBUT IMPORT ==========")
-
-    print("\n========== DÉBUT IMPORT ==========")
-
-    # 1️⃣ Récupération fichier
-    # -----------------------------
     fichier = request.files.get('fichier')
     if not fichier or fichier.filename == '':
-        print("[ERREUR] Aucun fichier sélectionné")
         flash("Aucun fichier sélectionné.", "danger")
-        flash("Aucun fichier selectionne.", "danger")
         return redirect(url_for('personnels_actifs'))
 
     filename = secure_filename(fichier.filename)
@@ -358,325 +461,82 @@ def importer_agents():
 
     try:
         fichier.save(chemin_fichier)
-        print(f"[INFO] Fichier sauvegardé : {chemin_fichier}")
-        print(f"[OK] Fichier sauvegarde : {chemin_fichier}")
-    except Exception as e:
-        print("[ERREUR] Sauvegarde fichier :", e)
-        print(f"[ERREUR] Sauvegarde : {e}")
-        flash(f"Erreur sauvegarde : {e}", "danger")
-        return redirect(url_for('personnels_actifs'))
-
-    # -----------------------------
-    # 2️⃣ Lecture Excel
-    # -----------------------------
-    try:
         df = pd.read_excel(chemin_fichier)
-        
-    
-        df.columns = df.columns.str.strip().str.lower()
-        print("[DEBUG] Colonnes détectées :", df.columns.tolist())
-        print("[DEBUG] Colonnes originales :", df.columns.tolist())
-        print("[DEBUG] Nombre de lignes AVANT nettoyage :", len(df))
-        print(f"[DEBUG] Lignes brutes : {len(df)}")
-    except Exception as e:
-        print("[ERREUR] Lecture Excel :", e)
-        print(f"[ERREUR] Lecture Excel : {e}")
-        flash(f"Erreur lecture Excel : {e}", "danger")
+    except Exception as exc:
+        logger.exception("Erreur lors de la lecture du fichier d'import")
+        flash(f"Erreur import : {exc}", "danger")
         return redirect(url_for('personnels_actifs'))
 
-    df.columns = df.columns.str.strip().str.lower()
-
-    rename_map = {
-        "agents": "agent",
-        "postes comptables": "poste_comptable",
-        "date de naissance": "date_naissance",
-        "poste type": "poste_type",
-        "date de premiere prise de service": "date_premiere_prise_service",
-        "historique formations": "historique_formations",
-        "historique des formations": "historique_formations",
-        "epoux ou epouse": "epoux_epouse_nom_poste",
-        "promotion corps": "promotion_corps",
-        "numero telephone": "telephone",
-        "im": "matricule"
-    }
-
-    for old_name, new_name in rename_map.items():
-        for col in df.columns:
-            if old_name.lower() in col.lower():
-                df.rename(columns={col: new_name}, inplace=True)
-
-    if 'agent' not in df.columns:
-        for col in df.columns:
-            if any(p in col.lower() for p in ['nom', 'prenom', 'full', 'employe']):
-                df.rename(columns={col: 'agent'}, inplace=True)
-                break
-
-    print(f"[DEBUG] Colonnes finales : {df.columns.tolist()}")
-    if len(df) > 0:
-        print(f"[DEBUG] Premiere ligne : {df.iloc[0].to_dict()}")
-
+    df = normalize_import_columns(df)
     df = df.where(pd.notnull(df), None)
-
-    if 'genre' in df.columns:
-        df['genre'] = df['genre'].apply(
-            lambda x: 'Homme' if str(x).upper() in ['M', 'MALE', 'H', 'MASCULIN']
-            else ('Femme' if str(x).upper() in ['F', 'FEMALE', 'FEMININ'] else ('Homme' if x is None or x == '' else x))
-        )
-    else:
-        df['genre'] = 'Homme'
-
-    for date_col in ['date_naissance', 'date_premiere_prise_service']:
-        if date_col in df.columns:
-            df[date_col] = pd.to_datetime(df[date_col], dayfirst=True, errors='coerce').dt.date
-
     df.dropna(how='all', inplace=True)
 
     if 'matricule' not in df.columns:
         flash("Colonne 'matricule' introuvable.", "danger")
         return redirect(url_for('personnels_actifs'))
 
-    df = df[df['matricule'].notna()]
-    df = df[df['matricule'].astype(str).str.strip() != '']
-
-    print(f"[DEBUG] Lignes apres nettoyage : {len(df)}")
-
-    colonnes_attendues = [
-        'agent', 'matricule', 'genre', 'date_naissance', 'telephone',
-        'statut', 'poste_type', 'poste_comptable', 'corps',
-        'promotion_corps', 'date_premiere_prise_service',
-        'historique_formations', 'epoux_epouse_nom_poste'
-    ]
-    for col in colonnes_attendues:
+    for col in AGENT_FIELDS:
         if col not in df.columns:
             df[col] = None
 
+    records = []
+    erreurs = 0
+    for row in df[AGENT_FIELDS].to_dict(orient='records'):
+        payload = build_agent_payload(
+            row,
+            AGENT_FIELDS,
+            defaults={"genre": "Homme", "statut": "Actif"},
+        )
+        if not payload["matricule"]:
+            erreurs += 1
+            continue
+        if not payload["agent"]:
+            payload["agent"] = "Agent inconnu"
+        records.append(payload)
+
+    existing_agents = get_existing_agents_by_matricule(
+        {record["matricule"] for record in records}
+    )
+
     total_ajoutes = 0
     total_updates = 0
-    erreurs = 0
-
-    for i, (index, row) in enumerate(df.iterrows()):
-        matricule_val = row.get("matricule")
-        if matricule_val is None:
-            continue
-
-        matricule = str(matricule_val).replace(".0", "").strip()
-        if not matricule or matricule == 'None':
-            erreurs += 1
-            continue
-
-        try:
-            agent_exist = Agent.query.filter_by(matricule=matricule).first()
-
-            if agent_exist:
-                agent_exist.agent = row.get("agent") or agent_exist.agent
-                agent_exist.genre = row.get("genre") or agent_exist.genre
-                agent_exist.date_naissance = row.get("date_naissance") or agent_exist.date_naissance
-                agent_exist.telephone = row.get("telephone") or agent_exist.telephone
-                agent_exist.statut = row.get("statut") or "Actif"
-                agent_exist.poste_type = row.get("poste_type") or agent_exist.poste_type
-                agent_exist.poste_comptable = row.get("poste_comptable") or agent_exist.poste_comptable
-                agent_exist.corps = row.get("corps") or agent_exist.corps
-                agent_exist.promotion_corps = row.get("promotion_corps") or agent_exist.promotion_corps
-                agent_exist.date_premiere_prise_service = row.get("date_premiere_prise_service") or agent_exist.date_premiere_prise_service
-                agent_exist.historique_formations = row.get("historique_formations") or agent_exist.historique_formations
-                agent_exist.epoux_epouse_nom_poste = row.get("epoux_epouse_nom_poste") or agent_exist.epoux_epouse_nom_poste
-                total_updates += 1
-            else:
-                nom_agent = row.get("agent") or row.get("agents") or "Agent inconnu"
-                genre_agent = row.get("genre") or "Homme"
-
-                nouvel_agent = Agent(
-                    agent=nom_agent,
-                    matricule=matricule,
-                    genre=genre_agent,
-                    date_naissance=row.get("date_naissance"),
-                    telephone=row.get("telephone"),
-                    statut=row.get("statut") or "Actif",
-                    poste_type=row.get("poste_type"),
-                    poste_comptable=row.get("poste_comptable"),
-                    corps=row.get("corps"),
-                    promotion_corps=row.get("promotion_corps"),
-                    date_premiere_prise_service=row.get("date_premiere_prise_service"),
-                    historique_formations=row.get("historique_formations"),
-                    epoux_epouse_nom_poste=row.get("epoux_epouse_nom_poste"),
-                )
-                db.session.add(nouvel_agent)
-                total_ajoutes += 1
-
-            if (i + 1) % 100 == 0:
-                db.session.commit()
-                print(f"[PROGRESS] {i + 1}/{len(df)} agents traites...")
-
-        except Exception as e:
-            db.session.rollback()
-            erreurs += 1
-            print(f"[ERREUR] Matricule {matricule} : {e}")
 
     try:
-        db.session.commit()
-        print("[OK] Commit final reussi")
-    except Exception as e:
-        db.session.rollback()
-        print(f"[ERREUR COMMIT] : {e}")
-        flash(f"Erreur base de donnees : {e}", "danger")
-        return redirect(url_for('personnels_actifs'))
-
-    print(f"Resultat : {total_ajoutes} ajoutes, {total_updates} mis a jour, {erreurs} erreurs")
-    print("========== FIN IMPORT ==========\n")
-
-    flash(f"Import termine : {total_ajoutes} ajoutes -- {total_updates} mis a jour -- {erreurs} erreurs", "success")
-    return redirect(url_for('personnels_actifs'))
-
-    df = df[df['matricule'].notna()]  # supprimer lignes sans matricule
-    df = df[df['matricule'].notna()]
-    df = df[df['matricule'].astype(str).str.strip() != '']
-
-    # -----------------------------
-    # 4️⃣ Colonnes attendues
-    # -----------------------------
-    # Ajouter colonnes manquantes
-    print(f"[DEBUG] Lignes apres nettoyage : {len(df)}")
-
-    colonnes_attendues = [
-        'agent', 'matricule', 'genre',
-        'date_naissance', 'telephone', 'statut',
-        'poste_type', 'poste_comptable', 'corps',
-        'agent', 'matricule', 'genre', 'date_naissance', 'telephone',
-        'statut', 'poste_type', 'poste_comptable', 'corps',
-        'promotion_corps', 'date_premiere_prise_service',
-        'historique_formations',
-        'epoux_epouse_nom_poste',
-
-        'historique_formations', 'epoux_epouse_nom_poste'
-    ]
-    for col in colonnes_attendues:
-        if col not in df.columns:
-            print(f"[WARNING] Colonne manquante ajoutée : {col}")
-            df[col] = None
-
-    if 'matricule' not in df.columns:
-        print("[ERREUR] Colonne 'matricule' introuvable")
-
-        print("[DEBUG] Colonnes après renommage :", df.columns.tolist())
-    # -----------------------------
-    # 5️⃣ Nettoyage dates
-    # 4️⃣ INSERT / UPDATE avec commit par lots
-    # -----------------------------
-    def safe_date(value):
-        try:
-            if pd.isna(value):
-                return None
-            return pd.to_datetime(value).date()
-        except:
-            return None
-
-    df["date_naissance"] = df["date_naissance"].apply(safe_date)
-    df["date_premiere_prise_service"] = df["date_premiere_prise_service"].apply(safe_date)
-
-    # -----------------------------
-    # 6️⃣ INSERT / UPDATE
-    # -----------------------------
-    total_ajoutes = 0
-    total_updates = 0
-    erreurs = 0
-    lot_size = 100
-
-    for index, row in df.iterrows():
-        print(f"\n[DEBUG] Ligne {index + 1}")
-    for i, (index, row) in enumerate(df.iterrows()):
-        matricule_val = row.get("matricule")
-        if matricule_val is None:
-            continue
-        
-        matricule = str(matricule_val).replace(".0", "").strip()
-
-        if not matricule:
-            print("[ERREUR] Matricule invalide")
-        matricule = str(matricule_val).replace(".0", "").strip()
-        if not matricule or matricule == 'None':
-            erreurs += 1
-            continue
-
-        try:
-            agent_exist = Agent.query.filter_by(matricule=matricule).first()
-
-            if agent_exist:
-                # UPDATE
-                print(f"[UPDATE] Agent existant : {matricule}")
-                agent_exist.agent = row.get("agent")
-                agent_exist.genre = row.get("genre")
-                agent_exist.date_naissance = row.get("date_naissance")
-                agent_exist.telephone = row.get("telephone")
-                agent_exist.agent = row.get("agent") or agent_exist.agent
-                agent_exist.genre = row.get("genre") or agent_exist.genre
-                agent_exist.date_naissance = row.get("date_naissance") or agent_exist.date_naissance
-                agent_exist.telephone = row.get("telephone") or agent_exist.telephone
-                agent_exist.statut = row.get("statut") or "Actif"
-                agent_exist.poste_type = row.get("poste_type")
-                agent_exist.poste_comptable = row.get("poste_comptable")
-                agent_exist.corps = row.get("corps")
-                agent_exist.promotion_corps = row.get("promotion_corps")
-                agent_exist.date_premiere_prise_service = row.get("date_premiere_prise_service")
-                agent_exist.historique_formations = row.get("historique_formations")
-                agent_exist.epoux_epouse_nom_poste = row.get("epoux_epouse_nom_poste")
-                agent_exist.poste_type = row.get("poste_type") or agent_exist.poste_type
-                agent_exist.poste_comptable = row.get("poste_comptable") or agent_exist.poste_comptable
-                agent_exist.corps = row.get("corps") or agent_exist.corps
-                agent_exist.promotion_corps = row.get("promotion_corps") or agent_exist.promotion_corps
-                agent_exist.date_premiere_prise_service = row.get("date_premiere_prise_service") or agent_exist.date_premiere_prise_service
-                agent_exist.historique_formations = row.get("historique_formations") or agent_exist.historique_formations
-                agent_exist.epoux_epouse_nom_poste = row.get("epoux_epouse_nom_poste") or agent_exist.epoux_epouse_nom_poste
+        for index, payload in enumerate(records, start=1):
+            agent = existing_agents.get(payload["matricule"])
+            if agent is None:
+                agent = Agent(**payload)
+                db.session.add(agent)
+                existing_agents[payload["matricule"]] = agent
+                total_ajoutes += 1
+            else:
+                apply_agent_payload(agent, payload, keep_existing=True)
                 total_updates += 1
 
-            else:
-                nom_agent = row.get("agent") or row.get("agents") or "Agent inconnu"
-                genre_agent = row.get("genre") or "Homme"
+            if index % 200 == 0:
+                db.session.flush()
 
-                nouvel_agent = Agent(
-                    agent=nom_agent,
-                    matricule=matricule,
-                    genre=genre_agent,
-                    date_naissance=row.get("date_naissance"),
-                    telephone=row.get("telephone"),
-                    statut=row.get("statut") or "Actif",
-                    poste_type=row.get("poste_type"),
-                    poste_comptable=row.get("poste_comptable"),
-                    corps=row.get("corps"),
-                    promotion_corps=row.get("promotion_corps"),
-                    date_premiere_prise_service=row.get("date_premiere_prise_service"),
-                    historique_formations=row.get("historique_formations"),
-                    epoux_epouse_nom_poste=row.get("epoux_epouse_nom_poste"),
-                )
-                db.session.add(nouvel_agent)
-                total_ajoutes += 1
-
-            if (i + 1) % 100 == 0:
-                db.session.commit()
-                print(f"[PROGRESS] {i + 1}/{len(df)} agents traites...")
-
-        except Exception as e:
-            db.session.rollback()
-            erreurs += 1
-            print(f"[ERREUR] Matricule {matricule} : {e}")
-
-    try:
         db.session.commit()
-        print("[OK] Commit final reussi")
-    except Exception as e:
+    except Exception as exc:
         db.session.rollback()
-        print(f"[ERREUR COMMIT] : {e}")
-        flash(f"Erreur base de donnees : {e}", "danger")
+        logger.exception("Erreur base de donnees pendant l'import des agents")
+        flash(f"Erreur base de donnees : {exc}", "danger")
         return redirect(url_for('personnels_actifs'))
 
-    print(f"Resultat : {total_ajoutes} ajoutes, {total_updates} mis a jour, {erreurs} erreurs")
-    print("========== FIN IMPORT ==========\n")
-
-    flash(f"Import termine : {total_ajoutes} ajoutes -- {total_updates} mis a jour -- {erreurs} erreurs", "success")
-    return redirect(url_for('personnels_actifs'))
+    logger.info(
+        "Import agents termine: %s ajoutes, %s mis a jour, %s erreurs",
+        total_ajoutes,
+        total_updates,
+        erreurs,
+    )
+    flash(
+        f"Import termine : {total_ajoutes} ajoutes -- {total_updates} mis a jour -- {erreurs} erreurs",
+        "success",
+    )
     return redirect(url_for('personnels_actifs'))
     
-@login_required
 @app.route('/personnels_inactifs')
+@login_required
 def personnels_inactifs():
     page = request.args.get('page', 1, type=int)
     per_page = 30
@@ -686,31 +546,21 @@ def personnels_inactifs():
     
     return render_template('personnels_inactifs.html', agents=agents, pagination=pagination, total_inactifs=total_inactifs, page='inactifs')
 
-from datetime import date, datetime
-from sqlalchemy import func
-from flask import render_template
 
-
-@login_required
 @app.route('/statistiques')
+@login_required
 def statistiques():
     today = date.today()
 
-    
-    # 
-    # STATUT (pour info générale, peut inclure tous) ---
     statut_data = db.session.query(
         Agent.statut, func.count(Agent.id)
     ).group_by(Agent.statut).all()
 
     labels_statut = [s for s, _ in statut_data]
     data_statut = [c for _, c in statut_data]
-    # ==========================
-    # AGENTS ACTIFS
-    # ==========================
+
     agents_actifs_query = Agent.query.filter_by(statut='Actif')
 
-    # --- POSTE COMPTABLE (agents actifs uniquement) ---
     poste_comptable_data = db.session.query(
         Agent.poste_comptable, func.count(Agent.id)
     ).filter(
@@ -721,7 +571,6 @@ def statistiques():
     labels_poste_comptable = [g for g, _ in poste_comptable_data]
     data_poste_comptable = [c for _, c in poste_comptable_data]
 
-    # --- CORPS (agents actifs uniquement) ---
     corps_data = db.session.query(
         Agent.corps, func.count(Agent.id)
     ).filter(
@@ -732,23 +581,11 @@ def statistiques():
     labels_corps = [c for c, _ in corps_data]
     data_corps = [nb for _, nb in corps_data]
 
-    # --- TRANCHES D'ÂGE (agents actifs uniquement) ---
     tranches = {"-30": 0, "30-39": 0, "40-49": 0, "50-59": 0, "60+": 0}
     agents = agents_actifs_query.filter(Agent.date_naissance.isnot(None)).all()
 
-    def safe_age(dn):
-        """Calcule l'âge à partir de la date de naissance"""
-        if isinstance(dn, str):
-            try:
-                dn_date = datetime.strptime(dn, "%Y-%m-%d").date()
-            except ValueError:
-                return None
-        else:
-            dn_date = dn
-        return today.year - dn_date.year - ((today.month, today.day) < (dn_date.month, dn_date.day))
-
     for agent in agents:
-        age = safe_age(agent.date_naissance)
+        age = calculate_age(agent.date_naissance, today)
         if age is None:
             continue
 
@@ -766,22 +603,13 @@ def statistiques():
     labels_age = list(tranches.keys())
     data_age = list(tranches.values())
 
-    # ==========================
-    # TOTALS
-    # ==========================
-    total_agents = agents_actifs_query.count()
-    agents_actifs = total_agents
-    agents_inactifs = Agent.query.filter_by(statut='Inactif').count()
-
-    
-    # --- AGENTS PROCHES DE LA RETRAITE ---
     AGE_RETRAITE = 60
-    PROCHE_RETRAITE = 5  # agents dans les 5 ans avant retraite
+    PROCHE_RETRAITE = 5
 
     agents_proches_retraite = []
 
     for agent in agents:
-        age = safe_age(agent.date_naissance)
+        age = calculate_age(agent.date_naissance, today)
         if age is None:
             continue
 
@@ -795,7 +623,6 @@ def statistiques():
                 'annees_restantes': annees_restantes
             })
 
-    # --- TOTALS ---
     total_agents = Agent.query.count()
     agents_actifs = Agent.query.filter_by(statut='Actif').count()
     agents_inactifs = Agent.query.filter_by(statut='Inactif').count()
@@ -815,11 +642,6 @@ def statistiques():
         total_agents=total_agents,
         agents_actifs=agents_actifs,
         agents_inactifs=agents_inactifs
-    )
-def calcul_age(date_naissance):
-    today = date.today()
-    return today.year - date_naissance.year - (
-        (today.month, today.day) < (date_naissance.month, date_naissance.day)
     )
 
 @app.route("/sanctions")
@@ -843,8 +665,8 @@ def ajouter_sanction():
             agent_id=request.form["agent_id"],
             type_sanction=request.form["type_sanction"],
             motif=request.form["motif"],
-            date_traitement=request.form["date_traitement"],
-            date_levee=request.form.get("date_levee") or None,
+            date_traitement=parse_optional_date(request.form["date_traitement"]),
+            date_levee=parse_optional_date(request.form.get("date_levee")),
             decision_par=request.form["decision_par"],
             levee_par=request.form["levee_par"],
             observation=request.form["observation"]
@@ -860,16 +682,17 @@ def ajouter_sanction():
 
 @app.route("/sanction/update_statut/<int:id>", methods=["POST"])
 def update_statut(id):
-    data = request.get_json()
-    sanction = Sanction.query.get(id)
+    data = request.get_json() or {}
+    sanction = db.session.get(Sanction, id)
+    if sanction is None:
+        return {"success": False, "message": "Sanction introuvable"}, 404
 
     statut = data.get("statut")
 
-    # 🔥 MAJ STATUT
     sanction.statut = statut
 
     if statut == "Levé":
-        sanction.date_levee = data.get("date_levee")
+        sanction.date_levee = parse_optional_date(data.get("date_levee"))
         sanction.levee_par = data.get("levee_par")
     else:
         sanction.date_levee = None
@@ -878,8 +701,8 @@ def update_statut(id):
     db.session.commit()
     return {"success": True}
 
-@login_required
 @app.route('/repartition')
+@login_required
 def repartition():
 
     corps = request.args.get('corps')
@@ -937,7 +760,7 @@ def mouvements():
     query = (
         db.session.query(
             Mouvement.id,
-            Agent.agent.label("matricule"),
+            Agent.matricule.label("matricule"),
             Agent.agent.label("agent"),
             Mouvement.date_mouvement,
             Mouvement.type_mouvement,
@@ -963,62 +786,44 @@ def mouvements():
 
 
 
-@login_required
 @app.route('/ajouter_agent', methods=['GET', 'POST'])
+@login_required
 def ajouter_agent():
     if request.method == 'POST':
-
-        # Récupération des champs
-        agent = request.form['agent']
-        matricule = request.form['matricule']
-        genre = request.form.get("genre")
-        date_naissance = request.form['date_naissance']
-        telephone = request.form.get('telephone')
-        statut = request.form.get('statut', 'Actif')
-
-        epoux_epouse_nom_poste = request.form.get('epoux_epouse_nom_poste')
-        poste_type = request.form['poste_type']
-        poste_comptable = request.form['poste_comptable']
-        corps = request.form['corps']
-
-        historique_formations = request.form.get('historique_formations')
-        date_premiere_prise_service = request.form['date_premiere_prise_service']
-        promotion_corps = request.form.get('promotion_corps')
-       
-
-        # Création de l'agent
-        nouvel_agent = Agent(
-            agent=agent,
-            matricule=matricule,
-            genre=genre,
-            date_naissance=date_naissance,
-            telephone=telephone,
-            statut=statut,
-            epoux_epouse_nom_poste=epoux_epouse_nom_poste,
-            corps=corps,
-            poste_type=poste_type,
-            poste_comptable=poste_comptable,
-            historique_formations=historique_formations,
-            date_premiere_prise_service=date_premiere_prise_service,
-            promotion_corps=promotion_corps
-            
+        payload = build_agent_payload(
+            request.form,
+            AGENT_FIELDS,
+            defaults={"statut": "Actif"},
         )
 
-        # 🔹 1. Insertion agent
-        db.session.add(nouvel_agent)
-        db.session.commit()  # ⬅️ indispensable pour avoir nouvel_agent.id
+        if not payload["agent"] or not payload["matricule"]:
+            flash("Le nom et le matricule sont obligatoires.", "danger")
+            return redirect(url_for('ajouter_agent'))
 
-        # 🔹 2. Enregistrement du mouvement
-        enregistrer_mouvement(
-            agents_id=nouvel_agent.id,
-            champ="agent",
-            ancienne_valeur=None,
-            nouvelle_valeur=nouvel_agent.agent,
-            auteur=session.get("username", "system"),
-            type_mouvement="creation"
-        )
+        if Agent.query.filter_by(matricule=payload["matricule"]).first():
+            flash("Un agent avec ce matricule existe déjà.", "danger")
+            return redirect(url_for('ajouter_agent'))
 
-        db.session.commit()
+        try:
+            nouvel_agent = Agent(**payload)
+            db.session.add(nouvel_agent)
+            db.session.flush()
+
+            enregistrer_mouvement(
+                agents_id=nouvel_agent.id,
+                champ="agent",
+                ancienne_valeur=None,
+                nouvelle_valeur=nouvel_agent.agent,
+                auteur=session.get("username", "system"),
+                type_mouvement="creation"
+            )
+
+            db.session.commit()
+        except Exception as exc:
+            db.session.rollback()
+            logger.exception("Erreur lors de l'ajout d'un agent")
+            flash(f"Erreur lors de l'ajout : {exc}", "danger")
+            return redirect(url_for('ajouter_agent'))
 
         flash("Agent ajouté avec succès !", "success")
         return redirect(url_for('personnels_actifs'))
@@ -1027,70 +832,21 @@ def ajouter_agent():
 
 
 
-@login_required
 @app.route('/modifier_agent/<int:id>', methods=['POST'])
+@login_required
 def modifier_agent(id):
     agent = Agent.query.get_or_404(id)
-    data = request.get_json()   
+    data = request.get_json() or {}
+    anciennes_valeurs = collect_original_values(agent, AGENT_FIELDS)
+    payload = build_merged_agent_payload(agent, data, AGENT_FIELDS)
 
-    anciennes_valeurs = {
-        "agent": agent.agent,
-        "matricule": agent.matricule,
-        "telephone": agent.telephone,
-        "genre": agent.genre,
-        "date_naissance": agent.date_naissance,
-        "statut": agent.statut,
-        "corps": agent.corps,
-        "poste_type": agent.poste_type,
-        "poste_comptable": agent.poste_comptable,
-        "date_premiere_prise_service": agent.date_premiere_prise_service,
-        "historique_formations": agent.historique_formations,
-        "epoux_epouse_nom_poste": agent.epoux_epouse_nom_poste,
-        "promotion_corps": agent.promotion_corps,
-        
-    }
-
-
-    agent.agent = data.get('agent')
-    agent.matricule = data.get('matricule')
-    agent.telephone = data.get('telephone')
-    agent.genre = data.get('genre')
-    agent.date_naissance = data.get('date_naissance')
-    agent.statut = data.get('statut')
-    agent.corps = data.get('corps')
-    agent.poste_type = data.get('poste_type')
-    agent.poste_comptable = data.get('poste_comptable')
-    agent.date_premiere_prise_service = data.get('date_premiere_prise_service')
-    agent.historique_formations = data.get('historique_formations')
-    agent.epoux_epouse_nom_poste = data.get('epoux_epouse_nom_poste')
-    agent.promotion_corps = data.get('promotion_corps')
-    
-
-
-    for champ, ancienne_valeur in anciennes_valeurs.items():
-        nouvelle_valeur = data.get(champ)
-
-        ancienne_str = (
-            ancienne_valeur.isoformat()
-            if hasattr(ancienne_valeur, "isoformat")
-            else str(ancienne_valeur) if ancienne_valeur is not None else ""
-        )
-
-        nouvelle_str = (
-            str(nouvelle_valeur)
-            if nouvelle_valeur is not None else ""
-        )
-
-        if ancienne_str != nouvelle_str:
-            enregistrer_mouvement(
-                agent_id=agent.id,
-                champ=champ,
-                ancienne_valeur=ancienne_str,
-                nouvelle_valeur=nouvelle_str,
-                auteur=session.get("username", "system"),
-                type_mouvement="modification"
-            )
-
+    apply_agent_payload(agent, payload)
+    record_agent_movements(
+        agent.id,
+        anciennes_valeurs,
+        payload,
+        session.get("username", "system"),
+    )
     db.session.commit()
 
     return jsonify({
@@ -1099,81 +855,50 @@ def modifier_agent(id):
     })
 
 
-@login_required
 @app.route('/api/agent/<int:id>')
+@login_required
 def api_get_agent(id):
-    agent = Agent.query.get(id)
+    agent = db.session.get(Agent, id)
     if not agent:
         return {"error": "Agent introuvable"}, 404
 
-    return {
-        "id": agent.id,
-        "matricule": agent.matricule,
-        "agent": agent.agent,   # NOM COMPLET
-        "telephone": agent.telephone,
-        "genre": agent.genre,
-        "date_naissance": agent.date_naissance.isoformat() if agent.date_naissance else None,
-        "statut": agent.statut,
-        "corps": agent.corps,
-        "poste_type": agent.poste_type,
-        "poste_comptable": agent.poste_comptable,
-        "date_premiere_prise_service": agent.date_premiere_prise_service.isoformat() if agent.date_premiere_prise_service else None,
-        "historique_formations": agent.historique_formations,
-        "epoux_epouse_nom_poste": agent.epoux_epouse_nom_poste,
-        "promotion_corps": agent.promotion_corps,
-        
+    return serialize_agent(agent)
 
-        # ➕ CHAMPS D’INACTIVITÉ (à ajouter ici)
-        "motif_inactivite": agent.motif_inactivite,
-        "date_inactivite": agent.date_inactivite.isoformat() if agent.date_inactivite else None,
-        "commentaire_inactivite": agent.commentaire_inactivite
-    }
-
-from datetime import date
-
-@login_required
 @app.route('/api/agent/inactiver/<int:id>', methods=['POST'])
+@login_required
 def api_inactiver(id):
     agent = Agent.query.get_or_404(id)
-    data = request.get_json()
-
-    #  Sauvegarde ancien statut
+    data = request.get_json() or {}
     ancien_statut = agent.statut
 
-    #  Données reçues
-    motif = data.get("motif_inactivite")
-    details = data.get("details_motif")
-    commentaire = data.get("commentaire_inactivite")
-    date_inact = data.get("date_inactivite")
+    payload = build_agent_payload(
+        {
+            "statut": "Inactif",
+            "motif_inactivite": data.get("motif_inactivite"),
+            "date_inactivite": data.get("date_inactivite"),
+            "commentaire_inactivite": data.get("commentaire_inactivite"),
+        },
+        ["statut", *AGENT_INACTIVITY_FIELDS],
+    )
+    apply_agent_payload(agent, payload)
 
-    #  Mise à jour agent
-    agent.statut = "Inactif"
-    agent.motif_inactivite = motif
-    agent.commentaire_inactivite = commentaire
-
-    if date_inact:
-        agent.date_inactivite = date.fromisoformat(date_inact)
-
-    #  Mouvement RH structuré
     if ancien_statut != agent.statut:
         nouvelle_valeur = "Inactif"
-        if motif:
-            nouvelle_valeur += f" – {motif}"
+        if payload["motif_inactivite"]:
+            nouvelle_valeur += f" - {payload['motif_inactivite']}"
+        details = normalize_value(data.get("details_motif"))
         if details:
             nouvelle_valeur += f" ({details})"
 
-        mouvement = Mouvement(
+        enregistrer_mouvement(
             agents_id=agent.id,
-            type_mouvement="Inactivité",
-            champ_modifie="statut",
+            type_mouvement="inactivation",
+            champ="statut",
             ancienne_valeur=ancien_statut,
             nouvelle_valeur=nouvelle_valeur,
-            auteur=session.get("username", "system")
+            auteur=session.get("username", "system"),
         )
 
-        db.session.add(mouvement)
-
-    # Commit unique
     db.session.commit()
 
     return jsonify({"success": True})
@@ -1181,96 +906,38 @@ def api_inactiver(id):
 
 
 
-@login_required
 @app.route('/api/agent/update/<int:id>', methods=['POST'])
+@login_required
 def api_update_agent(id):
     agent = Agent.query.get_or_404(id)
     data = request.get_json() or {}
+    fields = AGENT_FIELDS + AGENT_INACTIVITY_FIELDS
+    anciennes_valeurs = collect_original_values(agent, fields)
+    payload = build_merged_agent_payload(agent, data, fields)
 
-    #  Stocker les anciennes valeurs
-    anciennes_valeurs = {
-        "agent": agent.agent,
-        "matricule": agent.matricule,
-        "telephone": agent.telephone,
-        "genre": agent.genre,
-        "date_naissance": agent.date_naissance,
-        "statut": agent.statut,
-        "corps": agent.corps,
-        "poste_type": agent.poste_type,
-        "poste_comptable": agent.poste_comptable,
-        "historique_formations": agent.historique_formations,
-        "epoux_epouse_nom_poste": agent.epoux_epouse_nom_poste,
-        "promotion_corps": agent.promotion_corps,
-        "motif_inactivite": agent.motif_inactivite,
-        "date_inactivite": agent.date_inactivite,
-        "commentaire_inactivite": agent.commentaire_inactivite
-    }
+    if anciennes_valeurs["statut"] == "Inactif" and payload["statut"] == "Actif":
+        payload["motif_inactivite"] = None
+        payload["date_inactivite"] = None
+        payload["commentaire_inactivite"] = None
 
-    # 🔹 Mettre à jour les champs
-    for champ, ancienne_valeur in anciennes_valeurs.items():
-        nouvelle_valeur = data.get(champ, ancienne_valeur)
-
-        # Parse dates si nécessaire
-        if champ in ["date_naissance", "date_premiere_prise_service", "date_inactivite"] and nouvelle_valeur:
-            try:
-                nouvelle_valeur = date.fromisoformat(nouvelle_valeur)
-            except Exception:
-                nouvelle_valeur = ancienne_valeur
-
-        setattr(agent, champ, nouvelle_valeur)
-
-        # 🔹 Enregistrer le mouvement si la valeur a changé
-        if str(ancienne_valeur) != str(nouvelle_valeur):
-            # type_mouvement = 'modification' ou 'reactivation' si statut
-            type_mouv = "modification"
-            if champ == "statut" and ancienne_valeur == "Inactif" and nouvelle_valeur == "Actif":
-                type_mouv = "reactivation"
-            elif champ == "statut" and ancienne_valeur == "Actif" and nouvelle_valeur == "Inactif":
-                type_mouv = "inactivation"
-
-            enregistrer_mouvement(
-                agents_id=agent.id,
-                champ=champ,
-                ancienne_valeur=ancienne_valeur,
-                nouvelle_valeur=nouvelle_valeur,
-                auteur=session.get("username", "system"),
-                type_mouvement=type_mouv
-            )
-
-    # 🔹 Nettoyage si réactivation
-    if anciennes_valeurs["statut"] == "Inactif" and agent.statut == "Actif":
-        agent.motif_inactivite = None
-        agent.date_inactivite = None
-        agent.commentaire_inactivite = None
+    apply_agent_payload(agent, payload)
+    record_agent_movements(
+        agent.id,
+        anciennes_valeurs,
+        payload,
+        session.get("username", "system"),
+    )
 
     db.session.commit()
 
     return jsonify({
         "success": True,
-        "agent": {
-            "id": agent.id,
-            "matricule": agent.matricule,
-            "agent": agent.agent,
-            "telephone": agent.telephone,
-            "genre": agent.genre,
-            "date_naissance": agent.date_naissance.isoformat() if agent.date_naissance else None,
-            "statut": agent.statut,
-            "corps": agent.corps,
-            "poste_type": agent.poste_type,
-            "poste_comptable": agent.poste_comptable,
-            "date_premiere_prise_service": agent.date_premiere_prise_service.isoformat() if agent.date_premiere_prise_service else None,
-            "promotion_corps": agent.promotion_corps,
-            "epoux_epouse_nom_poste": agent.epoux_epouse_nom_poste,
-            "historique_formations": agent.historique_formations,
-            "motif_inactivite": agent.motif_inactivite,
-            "date_inactivite": agent.date_inactivite.isoformat() if agent.date_inactivite else None,
-            "commentaire_inactivite": agent.commentaire_inactivite
-        }
+        "agent": serialize_agent(agent)
     })
 
 
-@login_required
 @app.route('/supprimer_agent/<int:id>')
+@login_required
 def supprimer_agent(id):
     agent = Agent.query.get_or_404(id)
     db.session.delete(agent)
@@ -1281,34 +948,37 @@ def supprimer_agent(id):
 
 
 
-@login_required
 @app.route('/changer_statut/<int:id>', methods=['POST'])
+@login_required
 def changer_statut(id):
     agent = Agent.query.get_or_404(id)
 
     ancien_statut = agent.statut
 
-    # Changement
     agent.statut = "Inactif" if agent.statut == "Actif" else "Actif"
     nouveau_statut = agent.statut
 
-    # Enregistrement du mouvement
+    if nouveau_statut == "Actif":
+        agent.motif_inactivite = None
+        agent.date_inactivite = None
+        agent.commentaire_inactivite = None
+
     if ancien_statut != nouveau_statut:
         enregistrer_mouvement(
-            agent_id=agent.id,
-            type_mouvement="modification",
+            agents_id=agent.id,
+            type_mouvement="reactivation" if nouveau_statut == "Actif" else "inactivation",
             champ="statut",
             ancienne_valeur=ancien_statut,
-            nouvelle_valeur=nouveau_statut
+            nouvelle_valeur=nouveau_statut,
+            auteur=session.get("username", current_user.username),
         )
 
     db.session.commit()
 
-    flash(f"Statut de {agent.nom} changé en {agent.statut}", "warning")
+    flash(f"Statut de {agent.agent} changé en {agent.statut}", "warning")
     return redirect(url_for('personnels_inactifs'))
 
 
-@login_required
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -1322,6 +992,7 @@ def login():
 
         if user and user.check_password(password):
             login_user(user)
+            session["username"] = user.username
             flash("Connexion réussie", "success")
             return redirect(url_for('dashboard'))
         else:
@@ -1332,6 +1003,7 @@ def login():
 @app.route('/logout')
 @login_required
 def logout():
+    session.pop("username", None)
     logout_user()
     return redirect(url_for('login'))
 
@@ -1357,22 +1029,92 @@ def changer_mdp():
 
     return render_template('changer_mdp.html')
 
-@app.route('/init_users')
-def init_users():
-    if User.query.first():
-        return "Des utilisateurs existent déjà. Supprimez la table users si vous voulez recréer."
+@app.route('/utilisateurs', methods=['GET', 'POST'])
+@admin_required
+def utilisateurs():
+    if request.method == 'POST':
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
+        role = request.form.get('role', 'gestionnaire')
 
+        try:
+            create_user_account(username, password, role)
+            db.session.commit()
+            flash(f"Utilisateur '{normalize_value(username)}' créé avec succès.", "success")
+            return redirect(url_for('utilisateurs'))
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), "danger")
+        except Exception as exc:
+            db.session.rollback()
+            logger.exception("Erreur lors de la création d'un utilisateur")
+            flash(f"Erreur lors de la création : {exc}", "danger")
+
+    users = User.query.order_by(User.role.asc(), User.username.asc()).all()
+    return render_template(
+        'utilisateurs.html',
+        users=users,
+        roles=USER_ROLES,
+        page='utilisateurs',
+    )
+
+@app.route('/init_admin')
+def init_admin():
+    admin_user = User.query.filter_by(username=DEFAULT_ADMIN_USERNAME).first()
+    existing_admin = User.query.filter_by(role='admin').first()
+
+    if existing_admin:
+        return (
+            f"Le compte admin existe déjà : {existing_admin.username}. "
+            "Connectez-vous puis allez sur /utilisateurs pour créer les autres comptes."
+        )
+
+    if admin_user and admin_user.role != 'admin':
+        return (
+            f"L'utilisateur '{DEFAULT_ADMIN_USERNAME}' existe déjà avec le rôle "
+            f"'{admin_user.role}'. Modifiez-le manuellement en admin avant de continuer."
+        )
+
+    try:
+        create_user_account(DEFAULT_ADMIN_USERNAME, DEFAULT_ADMIN_PASSWORD, 'admin')
+        db.session.commit()
+    except ValueError as exc:
+        db.session.rollback()
+        return str(exc)
+    except Exception as exc:
+        db.session.rollback()
+        logger.exception("Erreur lors de l'initialisation du compte admin")
+        return f"Erreur lors de l'initialisation du compte admin : {exc}"
+
+    return (
+        f"Compte admin créé : {DEFAULT_ADMIN_USERNAME}/{DEFAULT_ADMIN_PASSWORD}. "
+        "Connectez-vous puis allez sur /utilisateurs pour créer les autres comptes."
+    )
+
+@app.route('/init_users')
+@admin_required
+def init_users():
     users = [
-        ("admin", "admin123", "Administrateur", "admin"),
         ("gestionnaire", "sirh2024", "Gestionnaire RH", "gestionnaire"),
         ("lecteur", "sirh2024", "Lecteur", "lecteur"),
     ]
-    for username, password, nom, role in users:
-        u = User(username=username, nom_complet=nom, role=role)
-        u.set_password(password)
-        db.session.add(u)
+
+    created_users = []
+    for username, password, _nom, role in users:
+        if User.query.filter_by(username=username).first():
+            continue
+        create_user_account(username, password, role)
+        created_users.append(username)
+
+    if not created_users:
+        return "Les comptes par défaut existent déjà."
+
     db.session.commit()
-    return "3 utilisateurs créés : admin/admin123, gestionnaire/sirh2024, lecteur/sirh2024"
+    return (
+        "Utilisateurs créés : " +
+        ", ".join(created_users) +
+        "."
+    )
 
 
 # === CRÉATION DES TABLES SI NON EXISTANTES ===
