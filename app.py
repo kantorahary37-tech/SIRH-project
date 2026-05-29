@@ -145,11 +145,16 @@ def dashboard():
         Agent.date_premiere_prise_service.desc()
     ).limit(5).all()
 
+    total_agents = Agent.query.count()
+    total_sanctions = Sanction.query.count()
+
     return render_template(
         "dashboard.html",
         page="dashboard",
         total_actifs=total_actifs,
         total_inactifs=total_inactifs,
+        total_agents=total_agents,
+        total_sanctions=total_sanctions,
         nouveaux_agents=nouveaux_agents,
         proches_retraite=proches_retraite,
         derniers_agents=derniers_agents

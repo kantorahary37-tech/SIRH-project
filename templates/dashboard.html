@@ -163,32 +163,59 @@ main {
 /* KPI */
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
-  gap: 20px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
   margin-bottom: 30px;
 }
 
 .card {
   background: var(--card);
-  padding: 20px;
+  padding: 18px 20px;
   border-radius: var(--radius);
-  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: box-shadow 0.2s;
+  cursor: pointer;
+  border: 1px solid #eef2f1;
 }
 
-.card h4 {
+.card:hover {
+  box-shadow: 0 4px 14px rgba(47,93,80,0.1);
+  border-color: #d0dbd7;
+}
+
+.card .card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  background: #ecf3f1;
+  color: var(--green-main);
+}
+
+.card .card-info h4 {
   font-size: 13px;
   color: var(--muted);
+  font-weight: 400;
 }
 
-.card .value {
+.card .card-info .value {
   font-size: 28px;
   font-weight: bold;
-  margin-top: 5px;
+  margin-top: 2px;
 }
 
-.green { color: #4CAF50; }
-.red { color: #E76F51; }
-.orange { color: #F4A261; }
+.green { color: #3E7C6D; }
+.red { color: #bf5a49; }
+.orange { color: #c0763a; }
 
 /* TABLE */
 .section {
@@ -278,32 +305,60 @@ tr:hover {
 
   <!-- KPI -->
   <div class="kpis">
-    <div class="card">
-      <h4>Agents actifs</h4>
-      <div class="value green">{{ total_actifs }}</div>
-    </div>
+    <a href="/personnels_actifs" class="card">
+      <div class="card-icon"><i class="fa-solid fa-users"></i></div>
+      <div class="card-info">
+        <h4>Total agents</h4>
+        <div class="value">{{ total_agents }}</div>
+      </div>
+    </a>
 
-    <div class="card">
-      <h4>Agents inactifs</h4>
-      <div class="value red">{{ total_inactifs }}</div>
-    </div>
+    <a href="/personnels_actifs" class="card">
+      <div class="card-icon"><i class="fa-solid fa-user-check"></i></div>
+      <div class="card-info">
+        <h4>Agents actifs</h4>
+        <div class="value green">{{ total_actifs }}</div>
+      </div>
+    </a>
 
-    <div class="card">
-      <h4>Nouveaux agents</h4>
-      <div class="value">{{ nouveaux_agents }}</div>
-    </div>
+    <a href="/personnels_inactifs" class="card">
+      <div class="card-icon"><i class="fa-solid fa-user-slash"></i></div>
+      <div class="card-info">
+        <h4>Agents inactifs</h4>
+        <div class="value red">{{ total_inactifs }}</div>
+      </div>
+    </a>
 
-    <div class="card">
-      <h4>Proches retraite</h4>
-      <div class="value orange">{{ proches_retraite }}</div>
-    </div>
+    <a href="/personnels_actifs" class="card">
+      <div class="card-icon"><i class="fa-solid fa-user-plus"></i></div>
+      <div class="card-info">
+        <h4>Nouveaux ce mois</h4>
+        <div class="value">{{ nouveaux_agents }}</div>
+      </div>
+    </a>
+
+    <a href="/statistiques" class="card">
+      <div class="card-icon"><i class="fa-solid fa-clock"></i></div>
+      <div class="card-info">
+        <h4>Proches retraite</h4>
+        <div class="value orange">{{ proches_retraite }}</div>
+      </div>
+    </a>
+
+    <a href="/sanctions" class="card">
+      <div class="card-icon"><i class="fa-solid fa-gavel"></i></div>
+      <div class="card-info">
+        <h4>Sanctions</h4>
+        <div class="value">{{ total_sanctions }}</div>
+      </div>
+    </a>
   </div>
 
   <!-- TABLE -->
   <div class="section">
     <div class="section-header">
       <h3>Derniers agents ajoutés</h3>
-      <button>Plus</button>
+      <a href="/personnels_actifs" style="background:#2F5D50;border:none;color:white;padding:6px 12px;border-radius:6px;cursor:pointer;text-decoration:none;font-size:13px;">Voir tout</a>
     </div>
 
     <table>
